@@ -3,7 +3,6 @@
 Free Formula 1 live timing and replays in any browser, in a dark navy (or light) style like the broadcast timing screens. Your browser connects straight to Formula 1's live timing feed, so there's no server: the whole site is one file, [index.html](index.html).
 
 - **Website:** https://isaraapae.github.io/f1-live/
-- **Want to help?** See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 This page started as the F1 Live page of [alert-watch](https://github.com/IsaraApae/alert-watch) and was split out (with its history) so friends can work on it. The LINE alerts stay in alert-watch.
 
