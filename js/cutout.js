@@ -46,6 +46,7 @@ async function driver(url, again = false) {
 // Most of 2023's logos sit on a white tile; a few need more. Seen at 110 px against every 2023 logo:
 //   aston-martin: its tile is dark green, not white
 //   mercedes:     the white between the star's arms is background too (the star itself is silver, so only those gaps go)
+//   haas-f1-team: its white H touches the white tile; everything inside the red circle is the logo
 const TILE = { "aston-martin": [18, 101, 90] };
 const GAPS = { mercedes: [[0.72, 0.38], [0.28, 0.38], [0.5, 0.76]] };   // inside the ring, between the arms (fractions of the size)
 
@@ -54,8 +55,16 @@ async function logo(url) {
   const team = (/\/([^/]+)-logo\.png$/.exec(url) || [])[1], tc = TILE[team];
   const near = (i, [r, g, b], tol) => Math.abs(p[i * 4] - r) + Math.abs(p[i * 4 + 1] - g) + Math.abs(p[i * 4 + 2] - b) < tol;
   const white = i => p[i * 4] > 225 && p[i * 4 + 1] > 225 && p[i * 4 + 2] > 225;
+  // Haas: the red circle (the bounding box of its red), kept whole
+  let keep = null;
+  if (team === "haas-f1-team") {
+    let x0 = W, x1 = 0, y0 = H, y1 = 0;
+    for (let i = 0; i < W * H; i++) if (p[i * 4 + 3] > 200 && p[i * 4] > 180 && p[i * 4 + 1] < 90 && p[i * 4 + 2] < 110) { const xx = i % W, yy = (i / W) | 0; x0 = Math.min(x0, xx); x1 = Math.max(x1, xx); y0 = Math.min(y0, yy); y1 = Math.max(y1, yy); }
+    if (x1 > x0) keep = { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, r: Math.min(x1 - x0, y1 - y0) / 2 };
+  }
+  const kept = i => keep && Math.hypot(i % W - keep.cx, ((i / W) | 0) - keep.cy) < keep.r;
   // from the edges inwards, through everything transparent or the tile's colour: that's the tile, not the logo
-  const tile = i => p[i * 4 + 3] < 30 || (tc ? near(i, tc, 90) : white(i));
+  const tile = i => !kept(i) && (p[i * 4 + 3] < 30 || (tc ? near(i, tc, 90) : white(i)));
   const seen = new Uint8Array(W * H);
   const clear = (seeds, ok) => {
     const stack = seeds.slice();
@@ -73,13 +82,15 @@ async function logo(url) {
   // the edge where the logo was blended into its tile is a light fringe: clear tile-like pixels beside the cleared ones,
   // then fade what's left of the edge, so no light outline shows on the dark theme
   const by = i => { const xx = i % W, yy = (i / W) | 0; return (xx > 0 && seen[i - 1]) || (xx < W - 1 && seen[i + 1]) || (yy > 0 && seen[i - W]) || (yy < H - 1 && seen[i + W]); };
-  const tileish = i => tc ? near(i, tc, 170) : p[i * 4] > 160 && p[i * 4 + 1] > 160 && p[i * 4 + 2] > 160;
+  const tileish = i => !kept(i) && (tc ? near(i, tc, 170) : p[i * 4] > 160 && p[i * 4 + 1] > 160 && p[i * 4 + 2] > 160);
   for (let pass = 0; pass < 2; pass++) {
     const hit = [];
     for (let i = 0; i < W * H; i++) if (!seen[i] && p[i * 4 + 3] && tileish(i) && by(i)) hit.push(i);
     for (const i of hit) { seen[i] = 1; p[i * 4 + 3] = 0; }
   }
-  for (let i = 0; i < W * H; i++) if (!seen[i] && p[i * 4 + 3] && by(i)) p[i * 4 + 3] = Math.round(p[i * 4 + 3] * 0.55);
+  // only light edge pixels are fringe: a thin dark stroke (Alpine's A) keeps its full strength
+  const light = i => tc ? near(i, tc, 220) : 0.299 * p[i * 4] + 0.587 * p[i * 4 + 1] + 0.114 * p[i * 4 + 2] > 120;
+  for (let i = 0; i < W * H; i++) if (!seen[i] && p[i * 4 + 3] && by(i) && light(i) && !kept(i)) p[i * 4 + 3] = Math.round(p[i * 4 + 3] * 0.55);
   if (GAPS[team]) clear(GAPS[team].map(([fx, fy]) => Math.round(fy * (H - 1)) * W + Math.round(fx * (W - 1))), i => p[i * 4] > 215 && p[i * 4 + 1] > 215 && p[i * 4 + 2] > 215);
   x.putImageData(d, 0, 0);
   // a dark logo (McLaren's, Alpine's) would vanish on the dark theme: measure it, so the page can give it a lighter tile there
