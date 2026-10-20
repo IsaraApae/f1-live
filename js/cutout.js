@@ -38,19 +38,34 @@ async function driver(url) {
   return f.toDataURL("image/png");
 }
 
+// Most of 2023's logos sit on a white tile; a few need more. Seen at 110 px against every 2023 logo:
+//   aston-martin: its tile is dark green, not white
+//   mercedes:     the white between the star's arms is background too (the star itself is silver, so only those gaps go)
+const TILE = { "aston-martin": [18, 101, 90] };
+const GAPS = { mercedes: [[0.72, 0.38], [0.28, 0.38], [0.5, 0.76]] };   // inside the ring, between the arms (fractions of the size)
+
 async function logo(url) {
   const img = await load(url), [c, x] = canvasOf(img), W = c.width, H = c.height, d = x.getImageData(0, 0, W, H), p = d.data;
-  // from the edges inwards, through everything transparent or near-white: that's the tile, not the logo
-  const tile = i => p[i * 4 + 3] < 30 || (p[i * 4] > 225 && p[i * 4 + 1] > 225 && p[i * 4 + 2] > 225);
-  const seen = new Uint8Array(W * H), stack = [];
-  for (let k = 0; k < W; k++) stack.push(k, (H - 1) * W + k);
-  for (let k = 0; k < H; k++) stack.push(k * W, k * W + W - 1);
-  while (stack.length) {
-    const i = stack.pop(); if (seen[i] || !tile(i)) continue;
-    seen[i] = 1; p[i * 4 + 3] = 0;
-    const xx = i % W, yy = (i / W) | 0;
-    if (xx > 0) stack.push(i - 1); if (xx < W - 1) stack.push(i + 1); if (yy > 0) stack.push(i - W); if (yy < H - 1) stack.push(i + W);
-  }
+  const team = (/\/([^/]+)-logo\.png$/.exec(url) || [])[1], tc = TILE[team];
+  const near = (i, [r, g, b], tol) => Math.abs(p[i * 4] - r) + Math.abs(p[i * 4 + 1] - g) + Math.abs(p[i * 4 + 2] - b) < tol;
+  const white = i => p[i * 4] > 225 && p[i * 4 + 1] > 225 && p[i * 4 + 2] > 225;
+  // from the edges inwards, through everything transparent or the tile's colour: that's the tile, not the logo
+  const tile = i => p[i * 4 + 3] < 30 || (tc ? near(i, tc, 90) : white(i));
+  const seen = new Uint8Array(W * H);
+  const clear = (seeds, ok) => {
+    const stack = seeds.slice();
+    while (stack.length) {
+      const i = stack.pop(); if (seen[i] || !ok(i)) continue;
+      seen[i] = 1; p[i * 4 + 3] = 0;
+      const xx = i % W, yy = (i / W) | 0;
+      if (xx > 0) stack.push(i - 1); if (xx < W - 1) stack.push(i + 1); if (yy > 0) stack.push(i - W); if (yy < H - 1) stack.push(i + W);
+    }
+  };
+  const edges = [];
+  for (let k = 0; k < W; k++) edges.push(k, (H - 1) * W + k);
+  for (let k = 0; k < H; k++) edges.push(k * W, k * W + W - 1);
+  clear(edges, tile);
+  if (GAPS[team]) clear(GAPS[team].map(([fx, fy]) => Math.round(fy * (H - 1)) * W + Math.round(fx * (W - 1))), i => p[i * 4] > 215 && p[i * 4 + 1] > 215 && p[i * 4 + 2] > 215);
   x.putImageData(d, 0, 0);
   // a dark logo (McLaren's, Alpine's) would vanish on the dark theme: measure it, so the page can outline it there
   let sum = 0, n = 0;
