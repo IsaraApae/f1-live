@@ -1022,7 +1022,7 @@ audio.addEventListener("ended", () => {
 // Drawn two ways: on a real map of the circuit's surroundings (geomap.js: 3D or from the top), or as the classic flat outline.
 // Car positions are worked out on the outline either way; the real map gets them turned into longitude and latitude.
 let circuit = null, circuitKey = null, trackLen = [], mapBox = null, sectorIdx = [];
-let mapView = "3d", geo = null, geoMaking = null, geoRef = null, geoKey = "", geoToken = 0, inv = null, secCut = null, cornerLabels = [], zones = [];
+let mapView = "3d", geo = null, geoMaking = null, geoRef = null, geoKey = "", geoToken = 0, inv = null, secCut = null, cornerLabels = [];
 const isDark = () => document.documentElement.dataset.mode === "dark";
 // a point of the flat outline (screen units) back to F1's coordinates, then to [lng, lat]
 const toGeo = (sx, sy) => { const { minX, minY, ox, oy, k, h, rot } = inv, [x, y] = rotate(minX + (sx - ox) / k, minY + (h - sy - oy) / k, -rot); return geoRef.toLngLat(x, y); };
@@ -1049,16 +1049,13 @@ async function setupGeo() {   // can run several times at once: they share the w
     geo.view(mapView);
   } catch (e) { if (screen === geoToken) $("mapwrap").classList.remove("geo"); }
 }
-function pushTrack() {   // the circuit, its sectors, corners, pit lane, flags and overtaking spots onto the real map
+function pushTrack() {   // the circuit, its sectors, corners, pit lane and flags onto the real map
   if (!geo || !geoRef || !circuit) return;
   circuit.geo = circuit.x.map((x, i) => geoRef.toLngLat(x, circuit.y[i]));
   geo.setTrack(circuit.geo, secCut, circuit.rotation, cornerLabels.map(c => ({ n: c.n, at: toGeo(c.x, c.y) })));
   geo.setPit(pitLane && pitLane.screen ? pitLane.screen.map(p => toGeo(p[0], p[1])) : []);
-  zonesOnMap(zones);
   flagKey = ""; dirty = true;
 }
-// overtaking spots from the analysis panel: [{ x, y (outline units), r (size), n (how many) }]
-export function zonesOnMap(list) { zones = list || []; if (geo && geoRef && inv) geo.setZones(zones.map(z => ({ at: toGeo(z.x, z.y), r: z.r, n: z.n }))); }
 export const mapState = () => ({ circuit, trackLen, mapBox, pitLane });
 async function loadCircuit() {
   const key = (((S.SessionInfo || {}).Meeting || {}).Circuit || {}).Key;
@@ -1178,7 +1175,7 @@ function drawCircuit() {
   circuit.cornerPts = (circuit.corners || []).map(c => ({ n: c.number, i: nearest(...mapBox(rotate(c.trackPosition.x, c.trackPosition.y, rot))) }));
   const [sx, sy] = circuit.screen[0], [nx, ny] = circuit.screen[3], ang = Math.atan2(ny - sy, nx - sx) * 180 / Math.PI;
   $("map").innerHTML = `<g id="pit"></g><path d="${d}" fill="none" stroke="var(--track-edge)" stroke-width="13" stroke-linejoin="round" stroke-linecap="round"/>
-    <g id="secs"></g><g id="flags"></g><g id="ots"></g>${corners}
+    <g id="secs"></g><g id="flags"></g>${corners}
     <g transform="translate(${sx.toFixed(1)},${sy.toFixed(1)}) rotate(${(ang + 90).toFixed(1)})"><rect x="-7" y="-2" width="14" height="4" fill="#fff"/>
       ${[0, 1, 2, 3, 4, 5, 6].map(i => `<rect x="${-7 + i * 2}" y="${i % 2 ? 0 : -2}" width="2" height="2" fill="#000"/>`).join("")}</g>
     <g id="bats"></g><g id="cars"></g>`;
@@ -1537,7 +1534,7 @@ export function mountTiming(el, { replay = null, app = null } = {}) {
   Object.assign(R, { t: 0, start: 0, end: 0, playing: false, data: null, last: 0, dirty: false });
   towerRows = {}; towerHead = ""; radioSeen = null; rcSeen = null; radioKey = ""; radioWho = ""; playingSrc = null;
   circuit = null; circuitKey = null; pitLane = null; trackLen = []; placeFor = ""; place = null; rainChance = null;
-  geo = null; geoMaking = null; geoRef = null; geoRefP = null; geoKey = ""; inv = null; secCut = null; cornerLabels = []; zones = [];
+  geo = null; geoMaking = null; geoRef = null; geoRefP = null; geoKey = ""; inv = null; secCut = null; cornerLabels = [];
   mapView = store.get("f1.mapview", "3d");
   if (mapView !== "classic") G.preload();
   champKey = ""; posKey = ""; fKey = ""; penCache = { key: null, v: null }; secKey = ""; flagKey = ""; nextKey = "";

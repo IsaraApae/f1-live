@@ -112,7 +112,7 @@ export default {
               <span class="bt-len dim"></span>
             </div>
             <div class="bt-row">
-              <div class="seg" data-g="speed" role="group" aria-label="Playback speed">${[0.25, 0.5, 1].map(v => `<button type="button" data-v="${v}" aria-pressed="${v === 1}">${v}×</button>`).join("")}</div>
+              <div class="seg" data-g="speed" role="group" aria-label="Playback speed">${[0.25, 0.5, 1, 2, 4].map(v => `<button type="button" data-v="${v}" aria-pressed="${v === 1}">${v}×</button>`).join("")}</div>
               <div class="bt-look"><span>Film</span><div class="seg" data-g="look" role="group" aria-label="Film style">${["dark", "light"].map(v => `<button type="button" data-v="${v}" aria-pressed="${look() === v}">${v === "dark" ? "Dark" : "Light"}</button>`).join("")}</div></div>
               <div class="bt-acts">
                 <button class="btn small ghost" type="button" data-act="restart">${RESTART}Restart</button>

@@ -79,7 +79,7 @@ export async function createMap(el, { dark, onCar }) {
                            maxPitch: 70, fadeDuration: 0, cooperativeGestures: false });
   map.touchZoomRotate.enableRotation();
   el._map = map;   // handy from the browser console
-  const data = { trk: fc([]), pit: fc([]), flags: fc([]), bats: fc([]), zones: fc([]), corners: fc([]) };
+  const data = { trk: fc([]), pit: fc([]), flags: fc([]), bats: fc([]), corners: fc([]) };
   let mode = dark, bounds = null, bearing = 0, viewNow = "3d", blink = 0, trackPts = [];
 
   function decorate() {   // our layers on top of the base map (again after every change of style)
@@ -102,10 +102,6 @@ export async function createMap(el, { dark, onCar }) {
                    paint: { "line-color": ["match", ["get", "k"], "red", "#e10600", "sc", "#f59e0b", "#facc15"],
                             "line-width": w(["match", ["get", "k"], "yellow", 4, 5], ["match", ["get", "k"], "yellow", 10, 12], ["match", ["get", "k"], "yellow", 30, 34]), "line-opacity": 0.9 } }, "trk-sec");
     add({ id: "bats", type: "line", source: "bats", layout: { "line-cap": "round" }, paint: { "line-color": "#f59e0b", "line-width": w(2, 4, 10), "line-opacity": 0.8 } });
-    add({ id: "zones", type: "circle", source: "zones", paint: { "circle-color": "rgba(245,158,11,.4)", "circle-stroke-color": "#f59e0b", "circle-stroke-width": 1.5,
-                   "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, ["*", ["get", "r"], 0.6], 15, ["*", ["get", "r"], 1.2], 18, ["*", ["get", "r"], 3]] } });
-    add({ id: "zones-n", type: "symbol", source: "zones", layout: { "text-field": ["to-string", ["get", "n"]], "text-font": ["Noto Sans Bold"], "text-size": 11, "text-allow-overlap": true },
-                   paint: { "text-color": mode ? "#fff" : "#111" } });
     add({ id: "corners", type: "circle", source: "corners", minzoom: 13.5, paint: { "circle-color": mode ? "#2a2a38" : "#ffffff", "circle-radius": 8, "circle-stroke-color": mode ? "#3a3a4a" : "#c9ccd6", "circle-stroke-width": 1 } });
     add({ id: "corners-n", type: "symbol", source: "corners", minzoom: 13.5, layout: { "text-field": ["to-string", ["get", "n"]], "text-font": ["Noto Sans Bold"], "text-size": 9.5, "text-allow-overlap": true, "text-ignore-placement": true },
                    paint: { "text-color": mode ? "#a0a0ae" : "#555a66" } });
@@ -195,7 +191,6 @@ export async function createMap(el, { dark, onCar }) {
     setPit(pts) { set("pit", fc(pts && pts.length > 1 ? [line(pts)] : [])); },
     setFlags(list) { set("flags", fc(list.map(f => line(f.pts, { k: f.k })))); if (!list.length && map.getLayer("flags")) map.setPaintProperty("flags", "line-opacity", 0.9); },
     setBattles(pairs) { set("bats", fc(pairs.map(p => line(p)))); },
-    setZones(list) { set("zones", fc(list.map(z => point(z.at, { n: z.n, r: z.r })))); },
     moveCar, dropCar, setLook,
     cars: () => [...cars.keys()],
     view(v) { viewNow = v; moved = false; camera(true); },   // picking a view frames the circuit again

@@ -2,7 +2,7 @@
 // and car telemetry (speed, gear, throttle, brake, RPM, DRS) for the driver you follow, moving with the replay clock.
 import { esc, lapText, tagVars, hex, TYRES } from "./util.js";
 import { of1 } from "./api.js";
-import { R, mapState, pointAt, rotate, pathOf, setFollow, following, seekTo, lapAt, zonesOnMap } from "./timing.js";
+import { R, mapState, rotate, pathOf, setFollow, following, seekTo, lapAt } from "./timing.js";
 
 let D = null, alive = false;
 const $ = id => document.getElementById(id);
@@ -16,7 +16,7 @@ export const panelsLeft = panel =>
 export const panelsRight = panel =>
   panel("p-dom", "analysis", `<span>Track dominance</span><small>fastest laps of the session</small>`,
     `<div class="chips" id="domPick"></div><div class="domwrap"><svg id="domMap" viewBox="0 0 400 300" role="img" aria-label="Which driver was quickest on each part of the track"></svg></div><div class="domkey" id="domKey"></div>`)
-  + panel("p-ot", "analysis", `<span>Overtakes <small id="otN"></small></span><label class="switch"><input type="checkbox" id="otMap" checked>On the map</label>`,
+  + panel("p-ot", "analysis", `<span>Overtakes <small id="otN"></small></span>`,
     `<ol class="otlist" id="otList"></ol>`);
 export const followExtra = () => `<div class="tele" id="tele" hidden>
   <div class="tele-g"><div><small>Speed</small><b id="tSpeed">–</b><i>km/h</i></div><div><small>Gear</small><b id="tGear">–</b></div><div><small>RPM</small><b id="tRpm">–</b></div><div><small>DRS</small><b id="tDrs">–</b></div></div>
@@ -52,7 +52,6 @@ export function start(data) {
     loadDominance();
   });
   $("otList").addEventListener("click", e => { const li = e.target.closest("li[data-at]"); if (li) seekTo(+li.dataset.at - 6000); });
-  $("otMap").addEventListener("change", () => { otKey = ""; render(); });
   $("fastLaps").addEventListener("click", e => { const li = e.target.closest("li[data-n]"); if (li) setFollow(li.dataset.n); });
 }
 export function stop() { alive = false; D = null; if (seen) { seen.disconnect(); seen = null; } }
@@ -83,30 +82,13 @@ function renderFast() {   // each driver's best lap so far, quickest first
 function renderOvertakes() {
   const el = $("otList"); if (!el) return;
   if (ots === null) { el.innerHTML = `<li class="empty">Overtakes couldn't be loaded</li>`; return; }
-  const so = ots.filter(o => o.at <= R.t), showMap = $("otMap").checked;
-  const key = so.length + "|" + showMap + "|" + (mapState().circuit ? 1 : 0);
+  const so = ots.filter(o => o.at <= R.t), key = String(so.length);
   if (key === otKey) return; otKey = key;
   $("otN").textContent = so.length ? `· ${so.length}` : "";
   el.innerHTML = so.length ? so.slice().reverse().slice(0, 120).map(o => `<li data-at="${o.at}"><span class="lap">Lap ${Math.max(1, lapAt(o.at))}</span>
       <span class="who">${tag(o.a)}<span class="arrow">passes</span>${tag(o.b)}</span><span class="pos">P${o.pos}</span></li>`).join("")
     : `<li class="empty">${ots.length ? "No overtakes yet" : "No overtakes in this session"}</li>`;
-  drawZones(showMap ? so : []);
 }
-function drawZones(list) {   // where the overtakes happened: 50 stretches of track, a circle sized by how many
-  const g = $("ots"), { circuit } = mapState(); if (!g || !circuit) return;
-  const bins = new Array(50).fill(0);
-  for (const o of list) {
-    const laps = D.byDriver[o.a] || [], L = laps.find(l => l.start <= o.at && o.at < l.end);
-    if (!L || !L.dur || L.n === 1) continue;   // the start's shuffle isn't an overtaking spot
-    const f = (o.at - L.start) / (L.dur * 1000);
-    bins[Math.floor(((f % 1) + 1) % 1 * 50)]++;
-  }
-  const most = Math.max(1, ...bins);
-  const spots = bins.map((k, i) => { if (!k) return null; const [x, y] = pointAt((i + 0.5) / 50); return { x, y, r: 5 + 9 * k / most, n: k }; }).filter(Boolean);
-  g.innerHTML = spots.map(z => `<g class="otz"><circle cx="${z.x.toFixed(1)}" cy="${z.y.toFixed(1)}" r="${z.r.toFixed(1)}"/><text x="${z.x.toFixed(1)}" y="${(z.y + 3).toFixed(1)}">${z.n}</text></g>`).join("");
-  zonesOnMap(spots);   // and on the real map
-}
-
 // ---------- track dominance ----------
 async function loadDominance() {
   if (!alive) return;
