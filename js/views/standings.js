@@ -1,14 +1,15 @@
 // Standings: the drivers' and the teams' championships, the top three up front, every row opening its page.
 import { esc, store, ICONS, note, skeleton, dtagHtml, tagVars, teamCar } from "../util.js";
-import { standings, latestYear, yearPick, driverHref, teamHref, faceHtml, logoHtml, pts } from "../stats.js";
+import { standings, latestYear, yearPick, driverHref, teamHref, faceHtml, logoHtml, pts, FIRST } from "../stats.js";
 
-let year = null;   // a season picked stays picked while the app is open (the address has no room for it)
+import { pickedYear, pickYear } from "../season.js";
 
 export default {
   title: "Standings",
   tab: "standings",
   async mount(el, [which], app) {
-    let kind = which === "teams" ? "teams" : "drivers", gapTo = store.get("f1.gapTo", "leader"), data = null;
+    // the season picked here or on the Calendar (shared while the app is open)
+    let kind = which === "teams" ? "teams" : "drivers", gapTo = store.get("f1.gapTo", "leader"), data = null, year = null;
     el.innerHTML = `
       <div class="st-head">
         <div class="seg wide st-kind" role="group" aria-label="Championship">
@@ -47,9 +48,11 @@ export default {
     });
 
     paint();
-    year = year || await latestYear().catch(() => new Date().getFullYear());
+    const latest = await latestYear().catch(() => new Date().getFullYear());
     if (!el.isConnected) return;
-    app.setTools(yearPick(year)).querySelector("select").addEventListener("change", e => { year = +e.target.value; load(); });
+    // a season the standings have (the Calendar can pick next year, which has none yet)
+    year = pickedYear() && pickedYear() >= FIRST && pickedYear() <= latest ? pickedYear() : latest;
+    app.setTools(yearPick(year)).querySelector("select").addEventListener("change", e => { year = +e.target.value; pickYear(year); load(); });
     await load();
   }
 };

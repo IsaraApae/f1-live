@@ -44,20 +44,36 @@ export const ink = hex => {   // black or white text on a colour
 export const tagVars = c => `--tc:${c};--tcf:${ink(c)}`;
 export const hex = c => c ? (String(c).startsWith("#") ? c : "#" + c) : "#777777";
 
-// formula1.com's portrait for the season (d: { HeadshotUrl, FirstName, LastName, TeamName })
+// formula1.com's pictures for a season: each year's driver portraits, team logos and cars.
+// From 2024 they're under common/f1/<year>/<team>/ (the team as that year's OpenF1 names it, a few spelled differently);
+// 2023's are on the older site, by surname and by team name with dashes.
+const plain = s => (s || "").normalize("NFKD").replace(/[^A-Za-z]/g, "");
+const TEAM_SLUG = { 2024: { haasf1team: "haas" } };
+const teamSlug = (team, y) => { const s = slug(team); return (TEAM_SLUG[y] || {})[s] || s; };
+const oldTeam = team => (team || "").toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const OLD = "https://media.formula1.com/content/dam/fom-website";
+// d: { HeadshotUrl, FirstName, LastName, TeamName }
 export function photo(d, px, year = new Date().getFullYear()) {
+  const y = +year;
+  if (y < 2024) return `https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/${y}Drivers/${plain(d.LastName).toLowerCase()}.png.transform/2col/image.png`;
   const m = /\/([A-Z]{6}\d{2})_/.exec(d.HeadshotUrl || "");
-  const plain = s => (s || "").normalize("NFKD").replace(/[^A-Za-z]/g, "");
   const code = m ? m[1].toLowerCase() : (plain(d.FirstName).slice(0, 3) + plain(d.LastName).slice(0, 3) + "01").toLowerCase();
-  const team = slug(d.TeamName), y = year;
+  const team = teamSlug(d.TeamName, y);
   return `https://media.formula1.com/image/upload/c_thumb,g_face,z_0.6,w_${px},h_${px}/d_common:f1:${y}:fallback:driver:${y}fallbackdriverright.webp/common/f1/${y}/${team}/${code}/${y}${team}${code}right.webp`;
 }
-// the SVG logo, sharp at any size (formula1.com's PNG versions are only 96 px)
-export const teamLogo = (team, white, year = new Date().getFullYear()) => { const t = slug(team); return `https://media.formula1.com/image/upload/common/f1/${year}/${t}/${year}${t}logo${white ? "white" : ""}.svg`; };
+// the SVG logo, sharp at any size (formula1.com's PNG versions are only 96 px); 2023's only come as PNG, in colour
+export const teamLogo = (team, white, year = new Date().getFullYear()) => {
+  if (+year < 2024) return `${OLD}/teams/${year}/${oldTeam(team)}-logo.png`;
+  const t = teamSlug(team, +year); return `https://media.formula1.com/image/upload/common/f1/${year}/${t}/${year}${t}logo${white ? "white" : ""}.svg`;
+};
 // the team's car, side on, facing right
-export const teamCar = (team, year = new Date().getFullYear(), w = 640) => { const t = slug(team); return `https://media.formula1.com/image/upload/c_fit,w_${w}/common/f1/${year}/${t}/${year}${t}carright.webp`; };
+export const teamCar = (team, year = new Date().getFullYear(), w = 640) => {
+  if (+year < 2024) return `${OLD}/teams/${year}/${oldTeam(team)}.png`;
+  const t = teamSlug(team, +year); return `https://media.formula1.com/image/upload/c_fit,w_${w}/common/f1/${year}/${t}/${year}${t}carright.webp`;
+};
 // both versions of a team logo: the dark-mode one shows in dark mode
-export const logoPair = (team, cls = "tl") => `<img class="${cls} lg-light" src="${esc(teamLogo(team))}" alt="" onerror="this.remove()"><img class="${cls} lg-dark" src="${esc(teamLogo(team, true))}" alt="" onerror="this.remove()">`;
+export const logoPair = (team, cls = "tl", year = new Date().getFullYear()) =>
+  `<img class="${cls} lg-light" src="${esc(teamLogo(team, false, year))}" alt="" onerror="this.remove()"><img class="${cls} lg-dark" src="${esc(teamLogo(team, true, year))}" alt="" onerror="this.remove()">`;
 
 // a driver tag: car number on the team colour, then the three-letter name
 export const dtagHtml = (num, tla, colour, small) =>

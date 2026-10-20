@@ -32,7 +32,7 @@ export const faceHtml = (d, px, cls = "face", lazy = true) => d.shape
   ? `<img class="${cls}" style="--tc:${d.colour}" src="${esc(photo(d.shape, px, d.year))}" alt=""${lazy ? ` loading="lazy"` : ""}>`
   : `<span class="${cls} st-ini" style="${tagVars(d.colour)}">${esc(initials(`${d.first} ${d.last}`))}</span>`;
 export const logoHtml = (t, cls = "") => t.f1
-  ? `<span class="st-logo ${cls}" style="--tc:${t.colour}">${logoPair(t.f1)}</span>`
+  ? `<span class="st-logo ${cls}" style="--tc:${t.colour}">${logoPair(t.f1, "tl", t.year)}</span>`
   : `<span class="st-logo st-ini ${cls}" style="${tagVars(t.colour)}">${esc(initials(t.name))}</span>`;
 
 // Jolpica allows about 4 requests a second: a page's burst goes out 3 at a time
@@ -84,7 +84,7 @@ export const standings = year => once("s" + year, year, () => loadStandings(year
 async function loadStandings(year) {
   const ttl = ttlFor(year);
   const [ds, cs, cal, list] = await Promise.all([jo(`${year}/driverStandings.json`, ttl), jo(`${year}/constructorStandings.json`, ttl),
-    jo(`${year}.json`, ttl).catch(() => null), year === NOW ? roster().catch(() => []) : []]);
+    jo(`${year}.json`, ttl).catch(() => null), roster(year).catch(() => [])]);   // that year's line-up: its photos, team names, logos and cars
   const dl = ds && ds.MRData.StandingsTable.StandingsLists[0], cl = cs && cs.MRData.StandingsTable.StandingsLists[0];
   const races = (cal && cal.MRData.RaceTable.Races) || [], round = dl ? +dl.round : 0;
   // who sat in which car at the latest race (a driver's list of teams isn't in the order they drove for them)

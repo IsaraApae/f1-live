@@ -1354,12 +1354,9 @@ function animateCars(ts) {   // each car: a dot on the racing line, with its tag
 }
 
 // ---------- the screen ----------
-// on a phone the panels are grouped under sub-tabs; on a wide screen they all show in two columns
-const GROUPS = [["timing", "Timing"], ["track", "Track"], ["rc", "Race control"], ["radio", "Radio"], ["more", "More"]];
-const TAB_REPLAY = ["analysis", "Analysis"];
+// two columns on a wide screen; on a phone every panel in one column, one under the other (like the old site)
 const panel = (id, groups, head, body, extra = "") => `<section class="card panel" id="${id}" data-g="${groups}" ${extra}><h2 class="card-h">${head}</h2>${body}</section>`;
 function markup(replay) {
-  const groups = replay ? [...GROUPS, TAB_REPLAY] : GROUPS;
   return `<style id="colcss"></style>
   <section class="card sbar">
     <div class="sb-top"><img class="flag" id="flag" alt="" hidden><div class="sb-ev"><b id="event">${replay ? "Loading the replay…" : "Connecting to live timing…"}</b><span id="sub"></span></div><span class="badge" id="live">${replay ? "LOADING" : "CONNECTING"}</span></div>
@@ -1379,7 +1376,6 @@ function markup(replay) {
     <div class="count" id="nextCount"></div>
     <a class="btn" id="nextReplay" hidden></a>
   </section>
-  <div class="seg wide tsubs" id="tsubs" role="tablist">${groups.map(([k, l]) => `<button type="button" data-k="${k}">${l}</button>`).join("")}</div>
   <div class="tgrid" id="tgrid">
     <div class="tcol">
       ${panel("p-tower", "timing", `<span>Timing <small id="part"></small> <small id="batN"></small> <small id="followHint">· tap a driver to follow</small></span><span class="hd-tools"><button class="btn small ghost" id="colsBtn" type="button">Columns</button></span>`,
@@ -1437,16 +1433,6 @@ function fillColumns() {
     <span class="switch"><input type="checkbox" data-k="${k}" ${hiddenCols.has(k) ? "" : "checked"}></span></label>`).join("");
 }
 const pressView = () => { for (const b of $("mapView").children) b.setAttribute("aria-pressed", String(b.dataset.v === mapView)); };
-function setSub(k) {   // phone: which group of panels shows
-  const tabs = [...$("tsubs").children];
-  if (!tabs.some(b => b.dataset.k === k)) k = "timing";
-  for (const b of tabs) b.setAttribute("aria-pressed", String(b.dataset.k === k));
-  $("tgrid").dataset.show = k;
-  store.set("f1.sub", k);
-  if (k === "track" && circuit) drawCircuit();   // the map's box depends on its width
-  if (k === "track" && geo) requestAnimationFrame(() => geo && geo.resize());
-  A.shown(k);
-}
 function wire(root) {
   const on = (id, ev, fn) => { const el = $(id); if (el) el.addEventListener(ev, fn); };
   on("rcKinds", "click", e => { const b = e.target.closest("button"); if (b) { rcFilter = b.dataset.g; $("rcKinds")._html = ""; $("rc")._html = ""; renderRaceControl(); } });
@@ -1481,7 +1467,6 @@ function wire(root) {
     for (const x of $("champTabs").children) x.setAttribute("aria-pressed", String(x === b));
     dirty = true;
   });
-  on("tsubs", "click", e => { const b = e.target.closest("button"); if (b) setSub(b.dataset.k); });
   on("colsBtn", "click", () => { fillColumns(); $("colSheet").hidden = false; });
   on("colSheet", "click", e => { if (e.target === $("colSheet") || e.target.closest("[data-close]")) $("colSheet").hidden = true; });
   on("colAll", "click", () => { hiddenCols.clear(); store.set("f1.hide", []); applyColumns(); fillColumns(); });
@@ -1549,7 +1534,6 @@ export function mountTiming(el, { replay = null, app = null } = {}) {
   applyColumns();
   pressView();
   mode = replay ? "replay" : "live";
-  setSub(store.get("f1.sub", "timing"));
   timers.push(setInterval(frame, 250));
   rafId = requestAnimationFrame(animateCars);
   loadSchedule(); timers.push(setInterval(loadSchedule, 3 * 3600000));

@@ -42,7 +42,7 @@
   .cal-wx .wx { gap: 4px 9px; }
 }
 
-/* ---------- the season strip: progress, add to calendar, filter ---------- */
+/* ---------- the season strip: progress, filter ---------- */
 .cal-season { padding: 14px 16px; display: grid; gap: 12px; }
 .cal-season-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .cal-season-t { min-width: 0; }
@@ -165,8 +165,9 @@
 .wkd-more[aria-expanded="true"] svg { transform: rotate(-90deg); }
 .wkd-res + .wkd-more, .wkd-all { border-top: 1px solid var(--line); }
 .wkd-all { color: var(--red); }
-.wkd-rl .row { grid-template-columns: 22px 64px minmax(0, 1fr) auto; gap: 10px; padding: 8px 16px; box-shadow: inset 3px 0 0 var(--tc); }
+.wkd-rl .row { grid-template-columns: 22px 34px 64px minmax(0, 1fr) auto; gap: 10px; padding: 8px 16px; box-shadow: inset 3px 0 0 var(--tc); }
 .wkd-rl .dtag { justify-self: start; }
+.wkd-rl .wkd-rface { width: 34px; height: 34px; box-shadow: 0 0 0 2px var(--tc); }
 .wkd-p { font-family: var(--display); font-weight: 900; font-size: 15px; text-align: right; }
 .wkd-r.p1 { background: color-mix(in srgb, var(--tc) 11%, transparent); }
 .wkd-r.out .end { color: var(--red); }
@@ -179,9 +180,6 @@
 .wkd-wet { color: var(--blue); }
 .wkd-tz { margin: 2px 4px 0; color: var(--dim); font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
 .wkd-tz svg { width: 14px; height: 14px; fill: currentColor; flex: 0 0 14px; }
-.wkd-cal { display: grid; gap: 12px; }
-.wkd-cal p { margin: 0; }
-.wkd-cal .btn { justify-self: start; }
 .wkd-nav { grid-template-columns: auto minmax(0, 1fr) auto; }
 .wkd-404 { text-align: center; }
 .wkd-404 .card-b { display: grid; justify-items: center; gap: 6px; padding: 32px 16px; }

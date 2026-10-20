@@ -64,21 +64,27 @@ export async function currentSeason() {
   return s;
 }
 
-// the drivers of the latest race or qualifying: number, three-letter name, names, team, team colour, photo link
-let roster = null;
-export function drivers() {
-  return roster = roster || (async () => {
-    const s = await season(new Date().getFullYear());
+// a season's drivers as of its latest race or qualifying: number, three-letter name, names, team (that year's name),
+// team colour, photo link. Past seasons: their last race, so photos, logos and cars are that year's.
+const rosters = {};
+export function drivers(year = new Date().getFullYear()) {
+  return rosters[year] = rosters[year] || (async () => {
+    const s = await season(year), past = year < new Date().getFullYear();
     const done = allSessions(s.rounds).filter(x => x.key && x.end < Date.now() && (x.kind === "race" || x.kind === "q")).sort((a, b) => b.end - a.end)[0];
-    let list = done ? await of1(`drivers?session_key=${done.key}`, { ttl: 6 * 3600000 }) : [];
-    if (!list.length) list = await of1(`drivers?session_key=latest`, { ttl: 3600000 });
+    let list = done ? await of1(`drivers?session_key=${done.key}`, { ttl: past ? 30 * 86400000 : 6 * 3600000 }) : [];
+    if (!list.length && !past) list = await of1(`drivers?session_key=latest`, { ttl: 3600000 });
     return list.map(d => ({
       num: String(d.driver_number), tla: d.name_acronym, first: d.first_name, last: d.last_name, full: d.full_name,
       team: d.team_name, colour: hex(d.team_colour), headshot: d.headshot_url, year: s.year,
       // the shape photo() expects
       HeadshotUrl: d.headshot_url, FirstName: d.first_name, LastName: d.last_name, TeamName: d.team_name
     }));
-  })().catch(e => { roster = null; throw e; });
+  })().catch(e => { delete rosters[year]; throw e; });
 }
+
+// the season picked on the Calendar and Standings pages: changing it on one changes the other (for this visit)
+let picked = null;
+export const pickedYear = () => picked;
+export const pickYear = y => { picked = +y || null; };
 // Jolpica's team names differ from F1's own ("RB F1 Team" vs "Racing Bulls"): match a Jolpica team by its drivers' codes
 export const teamOfCode = (list, code) => (list.find(d => d.tla === code) || {}).team || null;

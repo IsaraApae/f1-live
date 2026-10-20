@@ -1,5 +1,5 @@
 // Settings: appearance, clock, your driver and team, alerts, and saved data.
-import { esc, store, ICONS, tzName } from "../util.js";
+import { esc, store, tzName } from "../util.js";
 import { clearCache } from "../api.js";
 import { drivers } from "../season.js";
 import * as main from "../main.js";
@@ -27,9 +27,7 @@ export default {
           <label><span>Race control pop-ups<small>Safety car, red flag, penalties and investigations pop up while you watch (live and replays)</small></span>
             <span class="switch"><input type="checkbox" id="alerts"></span></label>
           <label><span>Notifications in the background<small>While the Live tab is open in another tab or window, race control messages also come as system notifications</small></span>
-            <span class="switch"><input type="checkbox" id="notify"></span></label></div>
-        <p class="note-line small">For reminders before each session even with the site closed, add the season to your phone's calendar from the Calendar tab: every session comes with a 15-minute alert.</p>
-        <a class="btn" href="#/calendar">${ICONS.calendar}Open the calendar</a></div></section>
+            <span class="switch"><input type="checkbox" id="notify"></span></label></div></div></section>
       <section class="card"><h2 class="card-h">Saved data</h2><div class="card-b">
         <p class="note-line small">The site keeps recent schedules, results and replays in this browser so pages open quickly. Nothing is sent anywhere: there's no account and no tracking.</p>
         <button class="btn" id="clear" type="button">Clear saved data</button></div></section>
