@@ -115,7 +115,7 @@ export async function createMap(el, { dark, onCar }) {
     add({ id: "start", type: "line", source: "trk", filter: ["==", ["get", "k"], "start"], paint: { "line-color": "#ffffff", "line-width": w(2, 4, 10) } });
     add({ id: "flags", type: "line", source: "flags", layout: { "line-cap": "round", "line-join": "round" },
                    paint: { "line-color": ["match", ["get", "k"], "red", "#e10600", "sc", "#f59e0b", "#facc15"],
-                            "line-width": w(["match", ["get", "k"], "yellow", 4, 5], ["match", ["get", "k"], "yellow", 10, 12], ["match", ["get", "k"], "yellow", 30, 34]), "line-opacity": 0.9 } }, "trk-sec");
+                            "line-width": w(["match", ["get", "k"], "yellow", 4, 5], ["match", ["get", "k"], "yellow", 10, 12], ["match", ["get", "k"], "yellow", 30, 34]), "line-opacity": 0.9, "line-opacity-transition": { duration: 0 } } }, "trk-sec");
     add({ id: "bats", type: "line", source: "bats", layout: { "line-cap": "round" }, paint: { "line-color": "#f59e0b", "line-width": w(2, 4, 10), "line-opacity": 0.8 } });
     add({ id: "corners", type: "circle", source: "corners", minzoom: 13.5, paint: { "circle-color": mode ? "#2a2a38" : "#ffffff", "circle-radius": 8, "circle-stroke-color": mode ? "#3a3a4a" : "#c9ccd6", "circle-stroke-width": 1 } });
     add({ id: "corners-n", type: "symbol", source: "corners", minzoom: 13.5, layout: { "text-field": ["to-string", ["get", "n"]], "text-font": ["Noto Sans Bold"], "text-size": 9.5, "text-allow-overlap": true, "text-ignore-placement": true },
@@ -185,7 +185,7 @@ export async function createMap(el, { dark, onCar }) {
   const ro = new ResizeObserver(() => { map.resize(); if (!moved) camera(false); });
   ro.observe(el);
   // yellow sectors flash
-  const flash = setInterval(() => { if (map.getLayer("flags") && data.flags.features.some(f => f.properties.k === "yellow" || f.properties.k === "double")) map.setPaintProperty("flags", "line-opacity", (blink ^= 1) ? 0.95 : 0.25); }, 500);
+  const flash = setInterval(() => { if (map.getLayer("flags") && data.flags.features.some(f => f.properties.k === "yellow" || f.properties.k === "double")) map.setPaintProperty("flags", "line-opacity", (blink ^= 1) ? 0.95 : 0.15); }, 500);
 
   await ready;
   return {
