@@ -393,10 +393,10 @@ function syncReplayBar() {
   $("rLap").innerHTML = `${race ? "Lap " + Math.max(1, lapAt(R.t)) + "/" + R.data.totalLaps : ""}<span class="tod">${race ? " · " : ""}${timeOf(R.t)}</span>`;
 }
 let seeking = false;
-function drawMarks() {   // the replay timeline: safety car, VSC and red flag periods, and every 10th lap
+function drawMarks() {   // the replay timeline: yellow flag, safety car, VSC and red flag periods, and every 10th lap
   const D = R.data, span = R.end - R.start, x = t => 100 * Math.min(1, Math.max(0, (t - R.start) / span));
   const msgs = D.rc.map(({ at, m }) => ({ at, Message: m.message, Category: m.category, Flag: m.flag, Scope: m.scope, Sector: m.sector }));
-  const kindOf = st => ({ "4": "sc", "6": "vsc", "7": "vsc", "5": "red" })[st] || null;
+  const kindOf = st => ({ "2": "yellow", "4": "sc", "6": "vsc", "7": "vsc", "5": "red" })[st] || null;
   const bands = []; let open = null;
   msgs.forEach((m, i) => {
     const kind = kindOf(flagState(msgs.slice(0, i + 1)).status);
@@ -404,8 +404,12 @@ function drawMarks() {   // the replay timeline: safety car, VSC and red flag pe
     if (kind && !open) open = { kind, from: m.at };
   });
   if (open) bands.push({ ...open, to: R.end });
-  const names = { sc: "Safety car", vsc: "Virtual safety car", red: "Red flag" };
+  const names = { yellow: "Yellow flag", sc: "Safety car", vsc: "VSC", red: "Red flag" };
   $("rBands").innerHTML = bands.map(b => `<i class="band ${b.kind}" style="left:${x(b.from).toFixed(2)}%;width:max(3px,${(x(b.to) - x(b.from)).toFixed(2)}%)" title="${names[b.kind]}"></i>`).join("");
+  // a key to the colours, for what this session had (readable on a phone, where the rail is narrow)
+  const had = new Set(bands.map(b => b.kind));
+  $("rKey").innerHTML = [D.form && `<span><i class="tseg form"></i>Formation lap</span>`,
+    ...["yellow", "sc", "vsc", "red"].filter(k => had.has(k)).map(k => `<span><i class="band ${k}"></i>${names[k]}</span>`)].filter(Boolean).join("");
   const lead = Object.values(D.byDriver).sort((a, b) => b.length - a.length)[0] || [];
   const every = D.totalLaps > 40 ? 10 : 5;
   $("rLaps").innerHTML = D.sess.session_type === "Race" ? lead.filter(l => l.n % every === 0).map(l => `<span class="lapmark" style="left:${x(l.start).toFixed(2)}%">L${l.n}</span>`).join("") : "";
@@ -1414,6 +1418,7 @@ function markup(replay) {
       <input type="range" id="rSeek" min="0" max="1000" value="0" aria-label="Replay position">
       <div class="tip" id="rTip" hidden></div>
     </div>
+    <div class="rkey" id="rKey"></div>
     <div class="rctl">
       <button class="ico" id="rBack" type="button" aria-label="Back 30 seconds"><svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05 1-6.9 2.6L2 7v9h9l-3.62-3.62A7.97 7.97 0 0 1 20.5 16l2.37-.78A10.48 10.48 0 0 0 12.5 8z"/></svg></button>
       <button class="ico big" id="rPlay" type="button" aria-label="Play or pause"></button>

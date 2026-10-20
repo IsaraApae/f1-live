@@ -5,6 +5,7 @@ import { of1, forecast, forecastFor } from "../api.js";
 import { season } from "../season.js";
 import { shortName, wxHtml, flagImg } from "../calendar-ui.js";
 
+const TOP = 3;   // drivers shown in each session's results until "Show all"
 const MIN = 60000, DAY = 86400000, FORECAST_DAYS = 16 * DAY;
 // like season.js liveSession(): "on" from 15 minutes before the start to 30 after the end
 const phase = (x, t) => t < x.start - 15 * MIN ? "soon" : t <= x.end + 30 * MIN ? "live" : "done";
@@ -182,7 +183,7 @@ export default {
       if (g.err) return `<p class="note-line">Couldn't load the results. <button class="btn small" type="button" data-retry="${x.key}">Try again</button></p>`;
       if (!g.res.length) return `<p class="note-line">No results for this session yet.</p>`;
       const rows = [...g.res].sort(byPos), every = all.has(x.key);
-      return `<ol class="rows wkd-rl">${(every ? rows : rows.slice(0, 10)).map(e => {
+      return `<ol class="rows wkd-rl">${(every ? rows : rows.slice(0, TOP)).map(e => {
           const d = g.names(x.key, e.driver_number) || {}, c = hex(d.team_colour), [main, sub] = resultText(x, e);
           return `<li class="row wkd-r${e.position === 1 ? " p1" : ""}${e.dnf || e.dns || e.dsq ? " out" : ""}" style="--tc:${esc(c)}">
             <span class="wkd-p">${num(e.position) ? e.position : "–"}</span>
@@ -192,7 +193,7 @@ export default {
             <span class="end">${esc(main)}<small>${esc(sub)}</small></span>
           </li>`;
         }).join("")}</ol>
-        ${rows.length > 10 ? `<button class="wkd-all" type="button" data-all="${x.key}">${every ? "Show top 10" : `Show all ${rows.length}`}</button>` : ""}
+        ${rows.length > TOP ? `<button class="wkd-all" type="button" data-all="${x.key}">${every ? `Show top ${TOP}` : `Show all ${rows.length}`}</button>` : ""}
         ${condHtml(x)}`;
     }
 
