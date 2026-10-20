@@ -44,9 +44,10 @@ const app = {
 
 let current = null, token = 0, routed = 0;
 async function route() {
-  // old links: ?replay=KEY opens that replay
-  const q = new URLSearchParams(location.search);
-  if (q.get("replay") && !location.hash) { history.replaceState(null, "", location.pathname + (q.get("feed") ? `?feed=${encodeURIComponent(q.get("feed"))}` : "") + `#/replay/${q.get("replay")}`); }
+  // links from the LINE cards: ?replay=KEY opens that replay, ?live the Live tab
+  const q = new URLSearchParams(location.search), keep = q.get("feed") ? `?feed=${encodeURIComponent(q.get("feed"))}` : "";
+  if (q.get("replay") && !location.hash) history.replaceState(null, "", location.pathname + keep + `#/replay/${q.get("replay")}`);
+  else if (q.has("live") && !location.hash) history.replaceState(null, "", location.pathname + keep + "#/live");
   cameFrom = routed++ > 0;   // an earlier page of this site is behind us in the history
   const path = location.hash.replace(/^#/, "") || "/";
   let name = "home", params = [];
