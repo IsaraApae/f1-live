@@ -423,8 +423,7 @@ export class Film {
   footer() {
     const c = this.ctx, Y = this.lay, st = this.st, y = Y.foot, x0 = Y.prog.x0;
     rr(c, x0, y - 8, 9, 9, 2.5); c.fillStyle = st.red; c.fill();
-    const w = this.text("F1 Live", x0 + 13, y, { size: 9.5, weight: 800, color: st.dim });
-    this.text("· unofficial fan replay", x0 + 13 + w + 4, y, { size: 9, weight: 600, color: st.dim });
+    this.text("F1 Live", x0 + 13, y, { size: 9.5, weight: 800, color: st.dim });
     this.text("Data: OpenF1", Y.prog.x1, y, { size: 9, weight: 600, color: st.dim, align: "right" });
   }
 }
