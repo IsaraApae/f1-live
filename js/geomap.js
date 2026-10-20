@@ -83,7 +83,7 @@ export async function createMap(el, { dark, onCar }) {
   let mode = dark, bounds = null, bearing = 0, viewNow = "3d", blink = 0, trackPts = [];
 
   // which buildings count as near the track: until there is a track, all of them are "far"
-  const NEAR = 120;
+  const NEAR = 120, TALL = 2.5;   // buildings drawn 2.5 times their real height, so the city stands out
   let trackLine = null;
   function nearFilters() {
     if (!map.getLayer("b3d")) return;
@@ -100,8 +100,8 @@ export async function createMap(el, { dark, onCar }) {
     const firstLabel = (map.getStyle().layers.find(l => l.type === "symbol") || {}).id;
     // 3D buildings, easy to see; those within NEAR metres of the track (the ones that could stand in front of it) see-through
     const b3d = (id, opacity) => ({ id, type: "fill-extrusion", source: "openmaptiles", "source-layer": "building", minzoom: 13, filter: ["boolean", false],
-      paint: { "fill-extrusion-color": mode ? "#414a63" : "#bfc5d1", "fill-extrusion-height": ["coalesce", ["get", "render_height"], 6],
-               "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0], "fill-extrusion-opacity": opacity, "fill-extrusion-vertical-gradient": true } });
+      paint: { "fill-extrusion-color": mode ? "#414a63" : "#bfc5d1", "fill-extrusion-height": ["*", TALL, ["coalesce", ["get", "render_height"], 8]],
+               "fill-extrusion-base": ["*", TALL, ["coalesce", ["get", "render_min_height"], 0]], "fill-extrusion-opacity": opacity, "fill-extrusion-vertical-gradient": true } });
     add(b3d("b3d", 0.95), firstLabel);
     add(b3d("b3d-near", 0.16), firstLabel);
     nearFilters();
