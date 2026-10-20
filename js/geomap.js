@@ -82,14 +82,29 @@ export async function createMap(el, { dark, onCar }) {
   const data = { trk: fc([]), pit: fc([]), flags: fc([]), bats: fc([]), corners: fc([]) };
   let mode = dark, bounds = null, bearing = 0, viewNow = "3d", blink = 0, trackPts = [];
 
+  // which buildings count as near the track: until there is a track, all of them are "far"
+  const NEAR = 120;
+  let trackLine = null;
+  function nearFilters() {
+    if (!map.getLayer("b3d")) return;
+    try {
+      map.setFilter("b3d", trackLine ? [">=", ["distance", trackLine], NEAR] : null);
+      map.setFilter("b3d-near", trackLine ? ["<", ["distance", trackLine], NEAR] : ["boolean", false]);
+    } catch (e) { map.setFilter("b3d", null); }   // a MapLibre without "distance": every building as before
+  }
   function decorate() {   // our layers on top of the base map (again after every change of style)
     const layers = map.getStyle().layers;
     for (const l of layers) if (/^poi|^airport|housenumber/.test(l.id)) map.removeLayer(l.id);   // fewer labels over the track
     // one layer that fails (an old browser) mustn't stop the rest
     const add = (l, before) => { try { if (!map.getLayer(l.id)) map.addLayer(l, before); } catch (e) { console.warn(e); } };
     const firstLabel = (map.getStyle().layers.find(l => l.type === "symbol") || {}).id;
-    add({ id: "b3d", type: "fill-extrusion", source: "openmaptiles", "source-layer": "building", minzoom: 14,
-      paint: { "fill-extrusion-color": mode ? "#1d2130" : "#d8dbe2", "fill-extrusion-height": ["coalesce", ["get", "render_height"], 6], "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0], "fill-extrusion-opacity": 0.85 } }, firstLabel);
+    // 3D buildings, easy to see; those within NEAR metres of the track (the ones that could stand in front of it) see-through
+    const b3d = (id, opacity) => ({ id, type: "fill-extrusion", source: "openmaptiles", "source-layer": "building", minzoom: 13, filter: ["boolean", false],
+      paint: { "fill-extrusion-color": mode ? "#414a63" : "#bfc5d1", "fill-extrusion-height": ["coalesce", ["get", "render_height"], 6],
+               "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0], "fill-extrusion-opacity": opacity, "fill-extrusion-vertical-gradient": true } });
+    add(b3d("b3d", 0.95), firstLabel);
+    add(b3d("b3d-near", 0.16), firstLabel);
+    nearFilters();
     for (const [k, v] of Object.entries(data)) if (!map.getSource(k)) map.addSource(k, { type: "geojson", data: v });
     const w = (a, b, c) => ["interpolate", ["exponential", 1.6], ["zoom"], 12, a, 15, b, 18, c];
     add({ id: "pit", type: "line", source: "pit", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": mode ? "#8d93a8" : "#7a8194", "line-width": w(1, 2.5, 8), "line-dasharray": [2, 1.5] } });
@@ -174,6 +189,8 @@ export async function createMap(el, { dark, onCar }) {
     // the track as [lng, lat] points (closed loop), where sectors 1 and 2 end (indexes), the start line, and the corner numbers
     setTrack(pts, cut, rotation, corners) {
       trackPts = pts;
+      trackLine = { type: "LineString", coordinates: pts.filter((p, i) => i % 3 === 0).concat([pts[0]]) };   // every third point is plenty for distances
+      nearFilters();
       const feats = [line([...pts, pts[0]], { k: "edge" })];
       if (cut) for (let k = 0; k < 3; k++) feats.push(line(pts.slice(cut[k], cut[k + 1] + 1).concat(k === 2 ? [pts[0]] : []), { k: "s" + (k + 1) }));
       // the start line: a short bar across the track at its first point
