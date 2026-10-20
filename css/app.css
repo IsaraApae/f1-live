@@ -162,7 +162,9 @@ select.pick { appearance: none; background: var(--chip) url("data:image/svg+xml,
 .tl { width: 30px; height: 30px; object-fit: contain; display: block; }
 .lg-dark { display: none !important; } [data-mode="dark"] .lg-dark { display: block !important; } [data-mode="dark"] .lg-light { display: none !important; }
 /* 2023's pictures wait hidden until cutout.js has taken their backgrounds away (or shows them as they are) */
-img[src*="/content/dam/fom-website/drivers/"][src*="Drivers/"]:not(.uncut), img[src*="/content/dam/fom-website/teams/"][src$="-logo.png"]:not(.uncut) { visibility: hidden; }
+img[src*="/content/dam/fom-website/drivers/"][src*="Drivers/"]:not(.uncut), img[src*="/team%20logos/"][src*="#mark"]:not(.uncut) { visibility: hidden; }
+/* a one-colour logo in white, for the dark theme (2023's Alfa Romeo and AlphaTauri, see util.js teamLogo) */
+img[src$="#invert"], img.inv { filter: brightness(0) invert(1); }
 .flag { width: 30px; height: 20px; border-radius: 4px; object-fit: cover; box-shadow: 0 0 0 1px var(--line); flex: 0 0 auto; display: block; background: var(--chip); }
 .stripe { width: 4px; align-self: stretch; border-radius: 2px; background: var(--tc, var(--chip)); }
 .tyre { width: 20px; height: 20px; border-radius: 50%; border: 2.5px solid var(--ty); color: var(--ty); display: inline-grid; place-items: center; font-size: 9px; font-weight: 900; line-height: 1; background: var(--panel); flex: 0 0 auto; }
@@ -277,5 +279,3 @@ img[src*="/content/dam/fom-website/drivers/"][src*="Drivers/"]:not(.uncut), img[
 @media (max-width: 420px) { .settings .trow { flex-wrap: wrap; } }
 .mini-stand .p { font-weight: 900; text-align: right; }
 .mini-stand .face { width: 30px; height: 30px; }
-/* 2023's dark team logos (no white version that year): on the dark theme their tile turns light, so they show */
-[data-mode="dark"] .st-logo:has(img.dark-logo) { background: color-mix(in srgb, var(--tc) 45%, #eef0f4); }
