@@ -161,6 +161,8 @@ select.pick { appearance: none; background: var(--chip) url("data:image/svg+xml,
 .face { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--tc, var(--chip)); flex: 0 0 auto; display: block; }
 .tl { width: 30px; height: 30px; object-fit: contain; display: block; }
 .lg-dark { display: none !important; } [data-mode="dark"] .lg-dark { display: block !important; } [data-mode="dark"] .lg-light { display: none !important; }
+/* 2023's pictures wait hidden until cutout.js has taken their backgrounds away (or shows them as they are) */
+img[src*="/content/dam/fom-website/drivers/"][src*="Drivers/"]:not(.uncut), img[src*="/content/dam/fom-website/teams/"][src$="-logo.png"]:not(.uncut) { visibility: hidden; }
 .flag { width: 30px; height: 20px; border-radius: 4px; object-fit: cover; box-shadow: 0 0 0 1px var(--line); flex: 0 0 auto; display: block; background: var(--chip); }
 .stripe { width: 4px; align-self: stretch; border-radius: 2px; background: var(--tc, var(--chip)); }
 .tyre { width: 20px; height: 20px; border-radius: 50%; border: 2.5px solid var(--ty); color: var(--ty); display: inline-grid; place-items: center; font-size: 9px; font-weight: 900; line-height: 1; background: var(--panel); flex: 0 0 auto; }
@@ -275,3 +277,5 @@ select.pick { appearance: none; background: var(--chip) url("data:image/svg+xml,
 @media (max-width: 420px) { .settings .trow { flex-wrap: wrap; } }
 .mini-stand .p { font-weight: 900; text-align: right; }
 .mini-stand .face { width: 30px; height: 30px; }
+/* 2023's dark team logos (no white version that year): a soft light outline so they show on the dark theme */
+[data-mode="dark"] img.dark-logo { filter: drop-shadow(0 0 1px rgba(255, 255, 255, .9)) drop-shadow(0 0 3px rgba(255, 255, 255, .35)); }

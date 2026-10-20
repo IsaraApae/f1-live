@@ -55,7 +55,8 @@ const OLD = "https://media.formula1.com/content/dam/fom-website";
 // d: { HeadshotUrl, FirstName, LastName, TeamName }
 export function photo(d, px, year = new Date().getFullYear()) {
   const y = +year;
-  if (y < 2024) return `https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/${y}Drivers/${plain(d.LastName).toLowerCase()}.png.transform/2col/image.png`;
+  // a half-body photo, cut out in cutout.js; "#face" asks it for head and shoulders, like later years' small photos
+  if (y < 2024) return `https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/${y}Drivers/${plain(d.LastName).toLowerCase()}.png.transform/2col-retina/image.png${px <= 200 ? "#face" : ""}`;
   const m = /\/([A-Z]{6}\d{2})_/.exec(d.HeadshotUrl || "");
   const code = m ? m[1].toLowerCase() : (plain(d.FirstName).slice(0, 3) + plain(d.LastName).slice(0, 3) + "01").toLowerCase();
   const team = teamSlug(d.TeamName, y);

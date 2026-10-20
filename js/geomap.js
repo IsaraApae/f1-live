@@ -76,9 +76,7 @@ const fc = features => ({ type: "FeatureCollection", features });
 export async function createMap(el, { dark, onCar }) {
   const ml = await loadLib();
   const map = new ml.Map({ container: el, style: STYLE(dark), attributionControl: { compact: true }, dragRotate: true, pitchWithRotate: true,
-                           maxPitch: 70, fadeDuration: 0,
-                           // on a touch screen the map sits in a long page: one finger scrolls the page, two move the map
-                           cooperativeGestures: matchMedia("(pointer: coarse)").matches });
+                           maxPitch: 70, fadeDuration: 0, cooperativeGestures: false });
   map.touchZoomRotate.enableRotation();
   el._map = map;   // handy from the browser console
   const data = { trk: fc([]), pit: fc([]), flags: fc([]), bats: fc([]), zones: fc([]), corners: fc([]) };
