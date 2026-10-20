@@ -1,0 +1,229 @@
+/* Standings, driver and team pages (classes start with st-) */
+.view-standings { max-width: 940px; }
+.view-driver, .view-team { max-width: 1240px; }
+.st-year { padding: 7px 28px 7px 11px; }
+
+/* --- standings --- */
+.st-head { display: grid; gap: 10px; }
+.st-meta { margin: 0; color: var(--dim); font-weight: 600; font-size: 12.5px; display: flex; flex-wrap: wrap; gap: 2px 14px; min-height: 18px; }
+.st-meta b { color: var(--text); font-weight: 800; }
+.st-body { display: grid; gap: 16px; min-width: 0; }
+.st-foot { margin: -4px 2px 0; color: var(--dim); font-size: 12px; font-weight: 600; }
+
+/* the top three: second, first, third */
+.st-podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: end; }
+.st-pod { position: relative; display: grid; justify-items: center; text-align: center; gap: 1px; min-width: 0; padding: 18px 10px 14px; border-radius: var(--radius);
+          border: 1px solid color-mix(in srgb, var(--tc) 30%, var(--line)); overflow: hidden;
+          background: radial-gradient(90% 70% at 50% 0%, color-mix(in srgb, var(--tc) 46%, transparent), transparent 75%), var(--panel); transition: transform .15s; }
+.st-pod:hover { transform: translateY(-2px); }
+.st-pod.p1 { padding-top: 30px; padding-bottom: 20px; }
+.st-pod-pos { position: absolute; top: 8px; left: 11px; font: 900 22px/1 var(--display); color: color-mix(in srgb, var(--tc) 55%, var(--text)); }
+.st-pod.p1 .st-pod-pos { font-size: 28px; }
+.st-pod-face { width: 76px; height: 76px; border-radius: 50%; object-fit: cover; background: var(--tc); box-shadow: 0 0 0 3px var(--panel), 0 0 0 5px var(--tc); margin-bottom: 10px; }
+.st-pod.p1 .st-pod-face { width: 100px; height: 100px; }
+.st-pod-face.st-ini { font-size: 26px; }
+.st-pod-logo { width: 76px; height: 76px; border-radius: 20px; margin-bottom: 10px; }
+.st-pod-logo .tl { width: 56px; height: 56px; }
+.st-pod.p1 .st-pod-logo { width: 96px; height: 96px; } .st-pod.p1 .st-pod-logo .tl { width: 70px; height: 70px; }
+.st-pod b { font: 900 18px/1.15 var(--display); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-pod-fn { font-weight: 600; }
+.st-pod small { color: var(--dim); font-weight: 700; font-size: 11.5px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-pod-pts { font: 900 24px/1.1 var(--display); margin-top: 6px; }
+.st-pod.p1 .st-pod-pts { font-size: 30px; }
+.st-pod-pts small { font-size: 12px; font-family: Inter, system-ui, sans-serif; }
+.st-pod-gap { color: var(--dim); font-size: 11px; font-weight: 800; }
+
+/* the list */
+.st-list .card-h { padding-top: 10px; padding-bottom: 10px; }
+.st-gap button { padding: 5px 10px; font-size: 11.5px; }
+.st-row { grid-template-columns: 26px 40px minmax(0, 1fr) 42px 64px; gap: 10px; padding: 10px 16px; }
+.st-pos { font: 900 17px/1 var(--display); text-align: center; }
+.st-row .main b { font-size: 14.5px; }
+.st-fn { font-weight: 600; }
+.st-bar { display: block; height: 4px; border-radius: 2px; background: var(--chip); margin-top: 6px; overflow: hidden; }
+.st-bar i { display: block; height: 100%; border-radius: 2px; background: var(--tc); }
+.st-wins { display: inline-flex; align-items: center; justify-content: flex-end; gap: 3px; color: var(--dim); font-weight: 800; font-size: 12.5px; }
+.st-wins svg { width: 14px; height: 14px; fill: var(--yellow); }
+.st-wins.none { visibility: hidden; }
+.st-row .end { font: 900 19px/1.1 var(--display); }
+.st-row .end small { font-family: Inter, system-ui, sans-serif; }
+.st-tags { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+/* teams: their car beside the name, and under the logo on the podium */
+.st-trow { grid-template-columns: 26px 40px minmax(0, 1fr) 150px 42px 64px; }
+.st-car { width: 100%; height: 40px; object-fit: contain; object-position: right center; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .35)); }
+.st-pod-car { width: 100%; max-width: 230px; height: 52px; object-fit: contain; margin: -2px 0 8px; filter: drop-shadow(0 6px 8px rgba(0, 0, 0, .4)); }
+.st-pod.p1 .st-pod-car { height: 62px; }
+
+/* initials instead of a photo or logo; logos on a soft team tile */
+.st-ini { display: grid; place-items: center; background: var(--tc); color: var(--tcf); font-family: var(--display); font-weight: 900; font-size: 14px; letter-spacing: .3px; }
+.st-logo { width: 40px; height: 40px; border-radius: 12px; flex: 0 0 auto; display: grid; place-items: center; background: color-mix(in srgb, var(--tc) 14%, var(--panel2)); }
+.st-logo.st-ini { background: var(--tc); }
+.st-logo .tl { width: 30px; height: 30px; }
+
+@media (max-width: 560px) {
+  .st-podium { gap: 7px; }
+  .st-pod { padding: 14px 6px 11px; }
+  .st-pod.p1 { padding-top: 22px; padding-bottom: 15px; }
+  .st-pod-pos { top: 7px; left: 8px; font-size: 18px; } .st-pod.p1 .st-pod-pos { font-size: 22px; }
+  .st-pod-face { width: 58px; height: 58px; } .st-pod.p1 .st-pod-face { width: 74px; height: 74px; }
+  .st-pod-logo { width: 58px; height: 58px; border-radius: 16px; } .st-pod-logo .tl { width: 42px; height: 42px; }
+  .st-pod.p1 .st-pod-logo { width: 72px; height: 72px; } .st-pod.p1 .st-pod-logo .tl { width: 52px; height: 52px; }
+  .st-pod b { font-size: 15px; } .st-pod-fn { display: none; }
+  .st-pod-pts { font-size: 19px; } .st-pod.p1 .st-pod-pts { font-size: 23px; }
+  .st-pod-gap { font-size: 10.5px; }
+  .st-row { grid-template-columns: 22px 38px minmax(0, 1fr) 30px 54px; gap: 9px; padding: 10px 12px; }
+  .st-row .face, .st-row .st-logo { width: 38px; height: 38px; }
+  .st-fn { display: none; }
+  .st-wins { font-size: 12px; } .st-wins svg { width: 12px; height: 12px; }
+  .st-row .end { font-size: 17px; }
+  .st-list .card-h { padding-left: 12px; padding-right: 12px; }
+  .st-trow { grid-template-columns: 22px 38px minmax(0, 1fr) 84px 54px; }
+  .st-trow .st-wins { display: none; }   /* no room on a phone: wins show on the podium and the team's page */
+  .st-trow .main b { white-space: normal; line-height: 1.15; }   /* "Red Bull Racing" on two lines rather than cut short */
+  .st-trow .st-tags .dtag .n { display: none; }
+  .st-car { height: 26px; }
+  .st-pod-car { height: 30px; margin-bottom: 6px; } .st-pod.p1 .st-pod-car { height: 36px; }
+}
+
+/* --- driver and team pages --- */
+.st-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 980px) { .st-cols { grid-template-columns: minmax(0, 1fr); gap: 14px; } }
+
+/* the big top card on the team colour */
+.st-hero { position: relative; overflow: hidden; border-radius: 22px; border: 1px solid color-mix(in srgb, var(--tc) 30%, var(--line)); min-height: 250px; padding: 22px;
+           display: grid; align-content: end;
+           background: radial-gradient(60% 130% at 88% 100%, color-mix(in srgb, var(--tc) 85%, transparent), transparent 72%),
+                       linear-gradient(110deg, color-mix(in srgb, var(--tc) 30%, var(--panel)) 0%, color-mix(in srgb, var(--tc) 12%, var(--panel)) 55%, var(--panel)); }
+.st-hero-num { position: absolute; right: 4%; top: -24px; font: 900 220px/1 var(--display); letter-spacing: -6px; color: color-mix(in srgb, var(--tc) 32%, transparent); pointer-events: none; }
+.st-hero-photo { position: absolute; right: 3%; bottom: 0; width: 270px; height: 270px; object-fit: cover; pointer-events: none; }
+.st-hero-photo.st-ini { border-radius: 50%; width: 150px; height: 150px; bottom: 28px; font-size: 52px; }
+.st-hero-logo { position: absolute; right: 5%; top: 50%; transform: translateY(-50%); width: 170px; height: 170px; border-radius: 40px; background: color-mix(in srgb, var(--panel) 50%, transparent); }
+.st-hero-logo .tl { width: 120px; height: 120px; }
+.st-hero-logo.st-ini { font-size: 54px; background: var(--tc); }
+.st-hero-txt { position: relative; max-width: 58%; display: grid; gap: 4px; min-width: 0; }
+.st-hero-team { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 13px; min-width: 0; }
+.st-hero-team .st-logo { width: 30px; height: 30px; border-radius: 9px; background: color-mix(in srgb, var(--panel) 60%, transparent); }
+.st-hero-team .st-logo .tl { width: 22px; height: 22px; }
+.st-hero-team .st-logo.st-ini { background: var(--tc); font-size: 11px; }
+.st-hero-team a:hover { text-decoration: underline; }
+.st-hero h2 { margin: 4px 0 0; font-size: 44px; line-height: .95; font-weight: 900; letter-spacing: -.5px; text-transform: uppercase; overflow-wrap: anywhere; }
+.st-hero h2 span { display: block; font-size: 21px; font-weight: 600; text-transform: none; letter-spacing: 0; line-height: 1.2; }
+.st-hero-meta { color: color-mix(in srgb, var(--text) 70%, transparent); font-weight: 700; font-size: 13px; }
+.st-hero-stats { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.st-hero-stats > div { background: color-mix(in srgb, var(--panel) 70%, transparent); border: 1px solid var(--line); border-radius: 12px; padding: 7px 12px; min-width: 70px;
+                       backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.st-hero-stats b { display: block; font: 900 24px/1.05 var(--display); }
+.st-hero-stats small { color: var(--dim); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; }
+.st-hero .badge { justify-self: start; }
+/* a team's page: its car along the bottom right, the logo above it */
+.view-team .st-hero { min-height: 290px; }
+.view-team .st-hero-logo { top: 22px; transform: none; width: 104px; height: 104px; border-radius: 28px; }
+.view-team .st-hero-logo .tl { width: 74px; height: 74px; }
+.st-hero-car { position: absolute; right: 3%; bottom: 16px; width: min(48%, 520px); height: auto; filter: drop-shadow(0 12px 16px rgba(0, 0, 0, .45)); pointer-events: none; }
+@media (max-width: 640px) {
+  .view-team .st-hero { min-height: 0; }
+  .view-team .st-hero-logo { width: 96px; height: 96px; border-radius: 26px; }
+  .st-hero-car { position: relative; right: auto; bottom: auto; display: block; width: 100%; max-width: 440px; margin: 14px auto 0; }
+  .st-hero { min-height: 220px; padding: 16px; }
+  .st-hero-num { font-size: 150px; top: -14px; right: 2%; }
+  .st-hero-photo { width: 175px; height: 175px; right: -12px; }
+  .st-hero-photo.st-ini { width: 96px; height: 96px; right: 14px; bottom: 60px; font-size: 34px; }
+  .st-hero-logo { width: 96px; height: 96px; border-radius: 26px; right: 14px; top: 18px; transform: none; }
+  .st-hero-logo .tl { width: 66px; height: 66px; } .st-hero-logo.st-ini { font-size: 32px; }
+  .st-hero-txt { max-width: 64%; }
+  .st-hero h2 { font-size: 30px; } .st-hero h2 span { font-size: 16px; }
+  .st-hero-stats { gap: 6px; }
+  .st-hero-stats b { font-size: 19px; }
+  .st-hero-stats > div { padding: 5px 9px; min-width: 0; }
+  .st-hero-stats small { font-size: 9px; }
+  .view-team .st-hero-txt { max-width: 100%; }
+  .view-team .st-hero h2 { padding-right: 100px; }
+}
+
+/* stat tiles */
+.st-kv { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
+.st-kv b em { font: 700 12px Inter, system-ui, sans-serif; color: var(--dim); font-style: normal; margin-left: 3px; }
+
+/* charts drawn at the box's own width */
+.st-chart { position: relative; padding: 12px 10px 4px; touch-action: pan-y; user-select: none; -webkit-user-select: none; min-height: 120px; }
+.st-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.st-chart text { fill: var(--dim); font: 700 10.5px Inter, system-ui, sans-serif; }
+.st-chart text.lbl { font-weight: 900; font-size: 11.5px; }
+.st-chart .ax { stroke: var(--line); stroke-width: 1; }
+.st-chart .st-guide { stroke: var(--dim); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0; }
+.st-chart .st-guide.on { opacity: .8; }
+.st-tip { position: absolute; top: 0; z-index: 2; pointer-events: none; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px;
+          font-size: 12px; font-weight: 700; box-shadow: 0 8px 22px var(--shadow); white-space: nowrap; }
+.st-tip b { display: block; font-size: 10.5px; color: var(--dim); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 2px; }
+.st-tip span { display: flex; align-items: center; gap: 6px; }
+.st-sw { display: inline-block; width: 9px; height: 9px; border-radius: 3px; background: var(--c); flex: 0 0 auto; }
+.st-legend { display: flex; gap: 6px 14px; flex-wrap: wrap; padding: 0 16px 14px; color: var(--dim); font-size: 12px; font-weight: 700; }
+.st-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.st-legend .dash { width: 14px; height: 0; border-top: 2px dashed var(--dim); }
+
+/* teammate head-to-head */
+.st-h2h { padding: 12px 16px 16px; display: grid; gap: 12px; }
+.st-h2h-top { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 10px; }
+.st-who { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.st-who.r { flex-direction: row-reverse; text-align: right; }
+.st-who .face { width: 44px; height: 44px; }
+.st-who b { display: block; font: 900 15px/1.15 var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-who small { color: var(--dim); font-weight: 700; font-size: 11.5px; }
+.st-who > span { min-width: 0; }
+.st-vs { color: var(--dim); font-weight: 900; font-size: 11px; letter-spacing: .6px; }
+.st-hrow { display: grid; grid-template-columns: 52px minmax(0, 1fr) 52px; gap: 10px; align-items: end; }
+.st-hrow > b { font: 900 21px/1 var(--display); color: var(--dim); }
+.st-hrow > b.win { color: var(--text); }
+.st-hrow > b:last-child { text-align: right; }
+.st-hrow small { display: block; text-align: center; color: var(--dim); font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 5px; }
+.st-split { display: flex; gap: 3px; height: 8px; }
+.st-split i { border-radius: 4px; background: var(--tc); min-width: 3px; }
+.st-split i + i { background: color-mix(in srgb, var(--tc) 38%, var(--chip)); }
+.st-split.none i { background: var(--chip); }
+.st-h2h .chips { padding: 0; }
+.st-h2h-note { color: var(--dim); font-size: 11.5px; font-weight: 600; margin: 0; }
+
+/* race by race */
+.st-rr { grid-template-columns: 30px minmax(0, 1fr) auto 40px; gap: 10px; padding: 10px 16px; }
+.st-rr .main small { white-space: normal; }
+.st-rr .end { font: 900 17px/1.1 var(--display); }
+.st-rr .end small { font-family: Inter, system-ui, sans-serif; }
+.st-fin { display: grid; grid-template-columns: auto 34px; gap: 0 8px; align-items: center; justify-items: end; }
+.st-fin small { color: var(--dim); font-size: 11px; font-weight: 700; white-space: nowrap; }
+.st-fin .up, .st-fin .down, .st-fin .same { font-size: 11.5px; font-weight: 800; }
+.st-fin > span:first-child { display: grid; justify-items: end; line-height: 1.2; }
+.st-p { display: inline-grid; place-items: center; min-width: 34px; height: 24px; padding: 0 5px; border-radius: 7px; background: var(--chip); font: 900 13px/1 var(--display); }
+.st-p.pod { background: var(--tc); color: var(--tcf); }
+.st-p.bad { background: color-mix(in srgb, var(--red) 14%, transparent); color: var(--red); font-size: 11.5px; }
+.st-p.out { color: var(--dim); }
+.st-mk { display: inline-flex; gap: 4px; margin-left: 6px; vertical-align: 1px; }
+.st-mk .badge { padding: 2px 5px; font-size: 9px; }
+.badge.st-fl { background: var(--purple); color: #fff; }
+.st-upcoming { color: var(--dim); font-size: 12px; font-weight: 600; padding: 10px 16px 12px; border-top: 1px solid var(--line); margin: 0; }
+
+/* team page: drivers and each round's pair of results */
+.st-drivers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); }
+.st-drv { background: var(--panel); display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; padding: 14px 16px; }
+.st-drv:hover { background: color-mix(in srgb, var(--tc) 8%, var(--panel)); }
+.st-drv .face { width: 58px; height: 58px; }
+.st-drv b { display: block; font: 900 17px/1.15 var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-drv small { display: block; color: var(--dim); font-weight: 700; font-size: 12px; }
+.st-drv .st-big { font: 900 22px/1.1 var(--display); color: var(--text); }
+.st-also { margin: 0; padding: 10px 16px; border-top: 1px solid var(--line); color: var(--dim); font-size: 12.5px; font-weight: 600; }
+.st-also a { color: var(--text); font-weight: 800; }
+@media (max-width: 480px) {
+  .st-drv { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; gap: 8px; padding: 14px 10px; }
+  .st-drv b { font-size: 15px; max-width: 100%; }
+}
+.st-tr { grid-template-columns: 30px minmax(0, 1fr) 40px; gap: 10px; padding: 10px 16px; }
+.st-tr .main > small { white-space: normal; }
+.st-tr .end { font: 900 17px/1.1 var(--display); }
+.st-tr .end small { font-family: Inter, system-ui, sans-serif; }
+.st-pair { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 6px; min-width: 0; }
+.st-res { display: inline-flex; align-items: center; gap: 5px; min-width: 0; max-width: 100%; }
+.st-res .dtag, .st-res .st-p { flex: 0 0 auto; }
+.row .main .st-res small { display: block; min-width: 0; color: var(--dim); font-size: 11px; font-weight: 700; }
+
+.st-nf { padding: 28px 20px; display: grid; gap: 10px; justify-items: center; text-align: center; }
+.st-nf b { font: 900 20px var(--display); }
+.st-nf p { margin: 0; color: var(--dim); }

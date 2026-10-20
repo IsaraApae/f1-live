@@ -1,0 +1,133 @@
+/* Lap battle: the picker, the film with its controls, the head to head and the telemetry charts. */
+
+/* ---------- picker ---------- */
+.bt-where { display: grid; grid-template-columns: 110px minmax(0, 1.6fr) minmax(0, 1fr); gap: 10px; padding: 14px 16px; }
+.bt-f { display: grid; gap: 5px; min-width: 0; }
+.bt-f > span { color: var(--dim); font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; }
+.bt-f select.pick, .bt-who select.pick { width: 100%; min-width: 0; text-overflow: ellipsis; }
+.bt-duel { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 14px; align-items: center; padding: 14px 16px 16px; border-top: 1px solid var(--line); }
+.bt-who { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; min-width: 0; }
+.bt-who.b { grid-template-columns: minmax(0, 1fr) auto; }
+.bt-who.b .face { order: 2; }
+.bt-who .face { width: 52px; height: 52px; box-shadow: 0 0 0 2px var(--tc), 0 0 0 5px color-mix(in srgb, var(--tc) 22%, transparent); overflow: hidden; }
+.bt-face img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.bt-who .sel { display: grid; gap: 6px; min-width: 0; }
+.bt-who select.bt-drv { background-color: color-mix(in srgb, var(--tc) 22%, var(--chip)); box-shadow: inset 4px 0 0 var(--tc); font-size: 13.5px; }
+.bt-who select.bt-lap { font-weight: 700; color: var(--dim); }
+.bt-who select.bt-lap:focus, .bt-who select.bt-lap:hover { color: var(--text); }
+.bt-vs { display: grid; justify-items: center; gap: 6px; }
+.bt-vs span { font-family: var(--display); font-weight: 900; font-size: 13px; letter-spacing: 1px; color: var(--dim); }
+.bt-swap:disabled { opacity: .4; cursor: default; }
+
+/* ---------- film ---------- */
+.bt-main { display: grid; gap: 16px; align-items: start; min-width: 0; }
+.bt-aside { display: grid; gap: 16px; min-width: 0; }
+@media (min-width: 1360px) { .bt-main { grid-template-columns: minmax(0, 1fr) 320px; } }
+.bt-stage { position: relative; background: #0b0b11; outline: none; }
+.bt-stage:focus-visible { box-shadow: inset 0 0 0 2px var(--blue); }
+.bt-canvas { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; cursor: pointer; }
+.bt-wait { aspect-ratio: 16 / 9; display: grid; place-items: center; align-content: center; gap: 12px; padding: 24px; text-align: center; color: var(--dim); font-weight: 700;
+           background: linear-gradient(100deg, var(--panel2) 30%, var(--chip) 50%, var(--panel2) 70%) 0 0 / 300% 100%; animation: shimmer 1.6s infinite linear; }
+.bt-wait.msg { animation: none; background: var(--panel2); }
+.bt-wait.msg b { color: var(--text); }
+.bt-big { all: unset; position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%; cursor: pointer; display: grid; place-items: center;
+          background: rgba(225, 6, 0, .92); color: #fff; box-shadow: 0 8px 30px rgba(0, 0, 0, .45); transition: transform .15s; }
+.bt-big:hover { transform: scale(1.06); }
+.bt-big svg { width: 30px; height: 30px; fill: currentColor; }
+/* while recording, the controls make way for the progress and Cancel */
+.bt-recbar { display: flex; align-items: center; gap: 10px; margin: 12px 14px 14px; padding: 8px 8px 8px 14px; border-radius: 12px; font-size: 13px;
+             background: color-mix(in srgb, var(--red) 12%, var(--panel2)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--red) 35%, transparent); }
+.bt-recbar .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--red); animation: pulse 1.2s infinite; flex: 0 0 10px; }
+.bt-recbar .pct { font-weight: 800; min-width: 36px; }
+.bt-recbar i { flex: 1; height: 5px; border-radius: 3px; background: var(--chip); overflow: hidden; }
+.bt-recbar s { display: block; height: 100%; width: 0; background: var(--red); }
+
+.bt-bar { display: flex; align-items: center; gap: 12px; padding: 10px 14px 6px; }
+.bt-play { all: unset; cursor: pointer; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--red); color: #fff; flex: 0 0 40px; }
+.bt-play svg { width: 22px; height: 22px; fill: currentColor; }
+.bt-now { font-family: var(--display); font-weight: 900; font-size: 17px; min-width: 74px; }
+.bt-len { font-weight: 700; font-size: 12.5px; }
+.bt-scrub { flex: 1; min-width: 0; appearance: none; -webkit-appearance: none; background: transparent; height: 28px; margin: 0; cursor: pointer; }
+.bt-scrub::-webkit-slider-runnable-track { height: 5px; border-radius: 3px; background: var(--chip); }
+.bt-scrub::-moz-range-track { height: 5px; border-radius: 3px; background: var(--chip); }
+.bt-scrub::-moz-range-progress { height: 5px; border-radius: 3px; background: var(--red); }
+.bt-scrub::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; margin-top: -5.5px; border-radius: 50%; background: var(--text); box-shadow: 0 0 0 3px color-mix(in srgb, var(--red) 70%, transparent); }
+.bt-scrub::-moz-range-thumb { width: 16px; height: 16px; border: 0; border-radius: 50%; background: var(--text); box-shadow: 0 0 0 3px color-mix(in srgb, var(--red) 70%, transparent); }
+.bt-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 6px 14px 14px; }
+.bt-look { display: inline-flex; align-items: center; gap: 8px; }
+.bt-look > span { color: var(--dim); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; }
+.bt-acts { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+/* while recording, only Cancel works */
+.bt-recording .bt-bar, .bt-recording .bt-row { display: none; }
+.bt-recording .bt-pick, .bt-recording .bt-charts svg { pointer-events: none; opacity: .5; }
+.bt-recording .bt-canvas { cursor: default; }
+
+/* ---------- head to head ---------- */
+.bt-h2h { display: grid; }
+.bt-h2h .hd, .bt-h2h .r { display: grid; grid-template-columns: minmax(0, 1fr) 92px 92px; gap: 8px; align-items: center; padding: 8px 16px; }
+.bt-h2h .hd { padding: 12px 16px 6px; }
+.bt-h2h .hd > :not(:first-child) { justify-self: end; }
+.bt-h2h .r { border-top: 1px solid var(--line); }
+.bt-h2h .r > span { color: var(--dim); font-weight: 700; font-size: 12.5px; }
+.bt-h2h .r b { justify-self: end; font-weight: 700; color: var(--dim); white-space: nowrap; padding-bottom: 1px; }
+.bt-h2h .r b.win { color: var(--text); font-weight: 900; box-shadow: inset 0 -2px 0 var(--tc); }
+.bt-notes { margin: 0; padding: 10px 16px 14px 32px; border-top: 1px solid var(--line); color: var(--dim); font-size: 12.5px; display: grid; gap: 5px; align-content: start; }
+.bt-notes b { color: var(--text); }
+/* full width (no side column): the table and the notes side by side */
+@media (min-width: 900px) and (max-width: 1359px) {
+  .bt-sum { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+  .bt-sum > .card-h { grid-column: 1 / -1; }
+  .bt-sum .bt-notes { border-top: 0; border-left: 1px solid var(--line); padding: 16px 20px 16px 36px; font-size: 13px; gap: 8px; }
+}
+
+/* ---------- charts ---------- */
+.bt-keys { display: inline-flex; gap: 12px; flex-wrap: wrap; }
+.bt-key { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; color: var(--text); }
+.bt-key i { width: 14px; height: 4px; border-radius: 2px; display: inline-block; }
+.bt-chart { padding: 8px 6px 6px; overflow: hidden; }
+.bt-chart svg { display: block; max-width: 100%; height: auto; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.bt-chart .t { fill: var(--text); font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; }
+.bt-chart .a { fill: var(--dim); font-size: 10px; font-weight: 700; }
+.bt-chart .a[fill] { font-weight: 800; }
+.bt-chart .cn { fill: var(--dim); font-size: 9px; font-weight: 800; }
+.bt-chart .g { stroke: var(--line); stroke-width: 1; }
+.bt-chart .g.z { stroke: var(--dim); stroke-dasharray: 3 3; }
+.bt-chart .c { stroke: var(--line); stroke-width: 1; stroke-dasharray: 2 4; }
+.bt-chart .l { fill: none; stroke-width: 1.7; stroke-linejoin: round; }
+.bt-chart .l.thin { stroke-width: 1.4; }
+.bt-chart .bt-cur { stroke: var(--text); stroke-width: 1; opacity: .55; }
+.bt-chart .bt-dot { stroke: var(--panel); stroke-width: 1.5; }
+.bt-chart .bt-hit { cursor: crosshair; }
+
+/* ---------- the finished video ---------- */
+.bt-sheet video { display: block; width: 100%; max-height: 56vh; border-radius: 12px; background: #000; }
+.bt-sheet p { margin: 10px 0 12px; font-size: 12.5px; font-weight: 700; }
+.bt-sheet-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.bt-sheet-acts .btn { flex: 1; padding: 11px 14px; }
+.bt-copy { display: block; width: 100%; margin-top: 6px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--input); font-size: 12px; }
+
+/* ---------- phones ---------- */
+@media (max-width: 760px) {
+  .bt-where { grid-template-columns: 96px minmax(0, 1fr); grid-template-areas: "y s" "r r"; padding: 12px 14px; gap: 8px 10px; }
+  .bt-f.y { grid-area: y; } .bt-f.s { grid-area: s; } .bt-f.r { grid-area: r; }
+  .bt-duel { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 12px 14px 14px; }
+  .bt-who, .bt-who.b { grid-template-columns: auto minmax(0, 1fr); gap: 10px; }
+  .bt-who.b .face { order: 0; }
+  .bt-who .sel { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+  .bt-who .face { width: 40px; height: 40px; }
+  .bt-vs { grid-auto-flow: column; justify-content: center; align-items: center; gap: 12px; }
+  .bt-vs::before, .bt-vs::after { content: ""; height: 1px; width: 60px; background: var(--line); }
+  .bt-vs .iconbtn { width: 34px; height: 34px; flex-basis: 34px; }
+  .bt-vs .iconbtn svg { width: 18px; height: 18px; }
+  .bt-bar { padding: 10px 12px 4px; gap: 10px; }
+  .bt-len { display: none; }
+  .bt-now { font-size: 15px; min-width: 66px; }
+  .bt-row { padding: 4px 12px 12px; gap: 8px; justify-content: space-between; }
+  .bt-row .seg button { padding: 6px 10px; }
+  .bt-look { gap: 6px; }
+  .bt-acts { width: 100%; margin: 2px 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .bt-acts .btn { padding: 8px 6px; }
+  .bt-h2h .hd, .bt-h2h .r { grid-template-columns: minmax(0, 1fr) 84px 84px; padding: 8px 14px; }
+  .bt-chart { padding: 6px 2px 4px; }
+}
+@media (max-width: 380px) { .bt-who .sel { grid-template-columns: minmax(0, 1fr); } }

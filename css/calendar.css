@@ -1,0 +1,207 @@
+/* calendar: the season (views/calendar.js) and one weekend (views/weekend.js) */
+
+/* ---------- the "up next" card ---------- */
+.cal-next .kicker, .wkd-hero .kicker { flex-wrap: wrap; row-gap: 4px; }
+.wkd-nw { white-space: nowrap; }
+.cal-next { display: grid; gap: 16px; }
+.cal-next > :not(.cal-trk) { position: relative; }   /* above the faint track drawing */
+.cal-next.is-live { border-color: color-mix(in srgb, var(--red) 70%, var(--line)); }
+.cal-trk { position: absolute; right: -18px; top: -14px; width: 300px; opacity: .13; pointer-events: none; }
+[data-mode="light"] .cal-trk { filter: invert(1); opacity: .09; }
+.cal-next-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: end; }
+.cal-next-id { display: grid; gap: 5px; min-width: 0; }
+.cal-where { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.cal-where .flag { width: 38px; height: 25px; border-radius: 5px; }
+.cal-where h2 { margin: 0; }
+.cal-next-id:hover h2 { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+.cal-next-id .sub { display: block; }
+.cal-dates, .wkd-dates { display: inline-flex; align-items: center; gap: 7px; font-weight: 800; }
+.cal-dates svg, .wkd-dates svg { width: 16px; height: 16px; fill: var(--red); flex: 0 0 16px; }
+.cal-next-cd { display: grid; gap: 7px; justify-items: end; }
+.cal-cd-l, .wkd-cd-l { margin: 0; color: var(--dim); font-weight: 800; font-size: 11.5px; text-transform: uppercase; letter-spacing: .6px; display: flex; align-items: center; gap: 8px; }
+.cal-cd-l b { color: var(--text); }
+.cal-next .count b, .wkd-next .count b { font-size: 30px; }
+.cal-next .count div, .wkd-next .count div { min-width: 62px; padding: 9px 8px; }
+.cal-sched { background: color-mix(in srgb, var(--panel) 72%, transparent); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.cal-sched .row { grid-template-columns: 58px minmax(0, 1fr) auto; padding: 9px 14px; align-items: start; }
+.cal-sched .row.done { opacity: .5; }
+.cal-sched .row.now { background: color-mix(in srgb, var(--red) 12%, transparent); }
+.cal-sched .k { font-weight: 900; font-size: 11.5px; color: var(--dim); text-transform: uppercase; letter-spacing: .4px; padding-top: 2px; }
+.cal-sched .main b { display: flex; align-items: center; gap: 7px; }
+.cal-wx { display: block; }
+.cal-wx:not(:empty) { margin-top: 4px; }
+.cal-wx .wx { gap: 9px; font-size: 11.5px; }
+.cal-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+/* wide screens: the weekend's sessions side by side */
+@media (min-width: 1100px) {
+  .cal-sched { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .cal-sched .row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "k end" "main main"; row-gap: 6px; align-content: start;
+                    border-top: 0; border-left: 1px solid var(--line); padding: 12px 14px; }
+  .cal-sched .row:first-child { border-left: 0; }
+  .cal-sched .k { grid-area: k; } .cal-sched .main { grid-area: main; } .cal-sched .end { grid-area: end; }
+  .cal-wx .wx { gap: 4px 9px; }
+}
+
+/* ---------- the season strip: progress, add to calendar, filter ---------- */
+.cal-season { padding: 14px 16px; display: grid; gap: 12px; }
+.cal-season-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.cal-season-t { min-width: 0; }
+.cal-season-t b { display: block; font-family: var(--display); font-size: 21px; font-weight: 900; line-height: 1.15; }
+.cal-season-t small { color: var(--dim); font-weight: 700; font-size: 12.5px; }
+.cal-season-top .btn { flex: 0 0 auto; }
+.cal-bar { height: 6px; border-radius: 999px; background: var(--chip); overflow: hidden; }
+.cal-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, color-mix(in srgb, var(--red) 70%, var(--amber)), var(--red)); }
+.cal-season-bot { display: flex; justify-content: space-between; align-items: center; gap: 8px 12px; flex-wrap: wrap; }
+.cal-season-bot small { font-weight: 600; font-size: 11.5px; }
+
+/* ---------- the list of weekends ---------- */
+.cal-list { display: grid; gap: 10px; }
+.cal-month { margin: 8px 2px 0; font-size: 19px; font-weight: 900; display: flex; align-items: baseline; gap: 10px; }
+.cal-month small { font-family: Inter, system-ui, sans-serif; font-size: 12px; color: var(--dim); font-weight: 700; }
+.cal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); gap: 10px; }
+.cal-wk { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; grid-template-areas: "rnd name date" "rnd loc tags" "foot foot foot";
+          column-gap: 12px; row-gap: 3px; align-items: center; padding: 12px 14px; min-width: 0;
+          background: var(--panel); border: 1px solid var(--line); border-radius: 14px; transition: border-color .15s; }
+.cal-wk:hover { border-color: color-mix(in srgb, var(--text) 25%, var(--line)); }
+.cal-rnd { grid-area: rnd; align-self: stretch; display: grid; align-content: center; justify-items: center; min-height: 42px;
+           border-radius: 10px; background: var(--panel2); border: 1px solid var(--line); }
+.cal-rnd small { font-size: 8.5px; font-weight: 900; text-transform: uppercase; letter-spacing: .7px; color: var(--dim); line-height: 1.2; }
+.cal-rnd b { font-family: var(--display); font-size: 20px; font-weight: 900; line-height: 1; }
+.cal-name { grid-area: name; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.cal-name .flag { width: 24px; height: 16px; border-radius: 3px; }
+.cal-name b { font-weight: 800; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-date { grid-area: date; font-weight: 800; font-size: 13px; white-space: nowrap; text-align: right; }
+.cal-loc { grid-area: loc; color: var(--dim); font-weight: 600; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-tags { grid-area: tags; display: flex; gap: 4px; justify-content: flex-end; }
+.cal-foot { grid-area: foot; margin-top: 8px; padding-top: 9px; border-top: 1px dashed var(--line); min-width: 0; font-size: 12.5px; min-height: 30px; display: flex; align-items: center; }
+.cal-win { display: flex; align-items: center; gap: 8px; min-width: 0; width: 100%; }
+.cal-win > svg { width: 16px; height: 16px; fill: var(--amber); flex: 0 0 16px; }
+.cal-win .cal-face { width: 30px; height: 30px; flex: 0 0 30px; background: var(--tc); box-shadow: 0 0 0 2px var(--tc); font-size: 11px; }
+.cal-win b { font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-win small { color: var(--dim); font-weight: 600; margin-left: auto; white-space: nowrap; padding-left: 4px; }
+.cal-when { display: flex; gap: 8px; color: var(--dim); font-weight: 600; white-space: nowrap; overflow: hidden; }
+.cal-when b { color: var(--text); font-weight: 800; }
+.cal-on { display: flex; align-items: center; gap: 6px; color: var(--red); font-weight: 600; }
+.cal-on b { font-weight: 900; }
+.cal-on svg { width: 16px; height: 16px; fill: currentColor; }
+/* finished: dimmed, the winner stays readable */
+.cal-wk.done { background: color-mix(in srgb, var(--panel) 65%, var(--bg)); }
+.cal-wk.done :is(.cal-rnd, .cal-name, .cal-date, .cal-loc, .cal-tags) { opacity: .55; }
+.cal-wk.done .flag { filter: saturate(.4); }
+/* the next one */
+.cal-wk.next { border-color: color-mix(in srgb, var(--red) 65%, var(--line)); background: linear-gradient(135deg, color-mix(in srgb, var(--red) 13%, var(--panel)), var(--panel) 65%); }
+.cal-wk.next .cal-rnd { background: var(--red); border-color: var(--red); color: #fff; }
+.cal-wk.next .cal-rnd small { color: rgba(255, 255, 255, .8); }
+.cal-wk.live { border-color: var(--red); box-shadow: 0 0 0 1px var(--red), 0 6px 24px color-mix(in srgb, var(--red) 25%, transparent); }
+.cal-wk.live .cal-rnd { background: var(--red); border-color: var(--red); color: #fff; }
+.cal-wk.live .cal-rnd small { color: rgba(255, 255, 255, .8); }
+
+@media (max-width: 760px) {
+  .cal-next-top { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .cal-next-cd { justify-items: stretch; }
+  .cal-next .count div, .wkd-next .count div { min-width: 0; flex: 1; }
+  .cal-next .count b, .wkd-next .count b { font-size: 26px; }
+  .cal-trk { width: 200px; }
+  .cal-where h2 { font-size: 23px; }
+  .cal-where .flag { width: 32px; height: 21px; }
+  .cal-acts .btn { flex: 1; }
+}
+
+/* ---------- one weekend ---------- */
+.wkd-hero { display: grid; gap: 16px; }
+.wkd-hero.is-live { border-color: color-mix(in srgb, var(--red) 70%, var(--line)); }
+.wkd-hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; }
+.wkd-id { display: grid; gap: 7px; min-width: 0; justify-items: start; }
+.wkd-where { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.wkd-where .flag { width: 42px; height: 28px; border-radius: 5px; }
+.wkd-where h2 { margin: 0; font-size: 32px; }
+.wkd-hero .sub { margin: 0; font-size: 15px; line-height: 1.45; }
+.wkd-dates { margin: 2px 0 0; }
+.wkd-trk { width: 300px; aspect-ratio: 4 / 3; display: grid; place-items: center; }
+.wkd-trk img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 6px 18px var(--shadow)); }
+[data-mode="light"] .wkd-trk img { filter: invert(1); }
+.wkd-next, .wkd-now, .wkd-pod { border-top: 1px solid var(--line); padding-top: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.wkd-next small { font-weight: 600; }
+.wkd-now .wkd-cd-l { text-transform: none; letter-spacing: 0; font-size: 15px; font-weight: 600; color: var(--text); }
+.wkd-pod { display: grid; gap: 8px; }
+.wkd-pods { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.wkd-pd { display: grid; justify-items: start; gap: 5px; padding: 10px 12px; min-width: 0; border-radius: 12px;
+          background: color-mix(in srgb, var(--tc) 13%, var(--panel)); border: 1px solid color-mix(in srgb, var(--tc) 40%, var(--line)); }
+.wkd-pd .p { font-family: var(--display); font-weight: 900; font-size: 22px; line-height: 1; }
+.wkd-pd .wkd-face { width: 56px; height: 56px; box-shadow: 0 0 0 2px var(--tc); }
+.wkd-pd b, .wkd-pd small { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wkd-pd b { font-weight: 900; }
+.wkd-pd small { color: var(--dim); font-weight: 600; font-size: 11.5px; }
+.wkd-lbl { display: block; color: var(--dim); font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; }
+
+.wkd-cols { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+.wkd-list { gap: 12px; }
+
+/* a session: a colour per kind on the left edge */
+.wkd-ses { --k: var(--blue); }
+.wkd-ses.k-race { --k: var(--red); } .wkd-ses.k-sprint { --k: var(--amber); } .wkd-ses.k-q, .wkd-ses.k-sq { --k: var(--purple); }
+.wkd-ses.is-live { border-color: var(--red); box-shadow: 0 0 0 1px var(--red); }
+.wkd-h { position: relative; display: grid; grid-template-columns: 62px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 14px 12px 16px; }
+.wkd-h::before { content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 0 3px 3px 0; background: var(--k); }
+.wkd-k { justify-self: start; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .5px; padding: 4px 7px; border-radius: 7px;
+         color: var(--k); background: color-mix(in srgb, var(--k) 15%, transparent); white-space: nowrap; }
+.wkd-h .main { min-width: 0; }
+.wkd-h .main b { display: block; font-size: 15px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wkd-h .main small { display: block; color: var(--dim); font-weight: 600; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wkd-h .end { text-align: right; }
+.wkd-cd small { display: block; color: var(--dim); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; }
+.wkd-cd b { font-family: var(--display); font-size: 19px; font-weight: 900; white-space: nowrap; }
+.wkd-fin { font-weight: 700; font-size: 12.5px; }
+.wkd-b { border-top: 1px solid var(--line); }
+.wkd-ses.is-soon .wkd-b { border-top-style: dashed; }
+.wkd-wx:empty { display: none; }
+.wkd-wx { padding: 10px 16px; }
+.wkd-liveb { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; padding: 12px 16px; }
+.wkd-liveb + .wkd-wx { padding-top: 0; }
+.wkd-more, .wkd-all { all: unset; box-sizing: border-box; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 4px;
+                      padding: 10px 16px; font-weight: 800; font-size: 12.5px; color: var(--dim); }
+.wkd-more:hover, .wkd-all:hover { color: var(--text); background: var(--hover); }
+.wkd-more svg { width: 16px; height: 16px; fill: currentColor; transform: rotate(90deg); transition: transform .15s; }
+.wkd-more[aria-expanded="true"] svg { transform: rotate(-90deg); }
+.wkd-res + .wkd-more, .wkd-all { border-top: 1px solid var(--line); }
+.wkd-all { color: var(--red); }
+.wkd-rl .row { grid-template-columns: 22px 64px minmax(0, 1fr) auto; gap: 10px; padding: 8px 16px; box-shadow: inset 3px 0 0 var(--tc); }
+.wkd-rl .dtag { justify-self: start; }
+.wkd-p { font-family: var(--display); font-weight: 900; font-size: 15px; text-align: right; }
+.wkd-r.p1 { background: color-mix(in srgb, var(--tc) 11%, transparent); }
+.wkd-r.out .end { color: var(--red); }
+.wkd-cond { padding: 12px 16px; border-top: 1px solid var(--line); display: grid; gap: 8px; justify-items: start; }
+/* flex, not the usual grid, so the last row stretches instead of leaving an empty tile */
+.wkd-cond .kv { width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); display: flex; flex-wrap: wrap; }
+.wkd-cond .kv > div { background: var(--panel2); flex: 1 1 96px; }
+.wkd-cond .kv b { font-size: 17px; }
+.wkd-cond .skel { padding: 0; width: 100%; }
+.wkd-wet { color: var(--blue); }
+.wkd-tz { margin: 2px 4px 0; color: var(--dim); font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.wkd-tz svg { width: 14px; height: 14px; fill: currentColor; flex: 0 0 14px; }
+.wkd-cal { display: grid; gap: 12px; }
+.wkd-cal p { margin: 0; }
+.wkd-cal .btn { justify-self: start; }
+.wkd-nav { grid-template-columns: auto minmax(0, 1fr) auto; }
+.wkd-404 { text-align: center; }
+.wkd-404 .card-b { display: grid; justify-items: center; gap: 6px; padding: 32px 16px; }
+.wkd-404 h2 { margin: 4px 0 0; font-size: 22px; }
+.wkd-404 p { margin: 0 0 10px; max-width: 420px; }
+.wkd-404-i { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--red) 14%, var(--panel2)); }
+.wkd-404-i svg { width: 26px; height: 26px; fill: var(--red); }
+
+@media (max-width: 1100px) { .wkd-cols { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 760px) {
+  .wkd-hero-grid { gap: 10px; align-items: start; }
+  .wkd-where { gap: 10px; }
+  .wkd-where h2 { font-size: 23px; }
+  .wkd-where .flag { width: 32px; height: 21px; }
+  .wkd-hero .sub { font-size: 13.5px; }
+  .wkd-trk { width: 104px; }
+  .wkd-next .count { width: 100%; }
+  .wkd-now .btn { flex: 1; }
+  .wkd-h { grid-template-columns: 54px minmax(0, 1fr) auto; gap: 10px; padding: 12px 12px 12px 14px; }
+  .wkd-cd b { font-size: 17px; }
+  .wkd-rl .row { padding: 8px 12px; gap: 8px; }
+  .wkd-pd { padding: 9px; }
+}
