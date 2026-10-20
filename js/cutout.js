@@ -19,14 +19,19 @@ const segmenter = () => seg = seg || (async () => {
 const load = url => new Promise((ok, no) => { const i = new Image(); i.crossOrigin = "anonymous"; i.onload = () => ok(i); i.onerror = no; i.src = url.replace(/#.*$/, ""); });
 const canvasOf = img => { const c = document.createElement("canvas"); c.width = img.naturalWidth; c.height = img.naturalHeight; const x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(img, 0, 0); return [c, x]; };
 
-async function driver(url) {
+async function driver(url, again = false) {
   const [s, img] = await Promise.all([segmenter(), load(url)]);
   const r = s.segment(img), m = r.confidenceMasks[0].getAsFloat32Array();
   const [c, x] = canvasOf(img), d = x.getImageData(0, 0, c.width, c.height);
   let person = 0;
   for (let i = 0; i < m.length; i++) { d.data[i * 4 + 3] = Math.round(255 * Math.min(1, Math.max(0, (m[i] - 0.3) / 0.4))); if (m[i] > 0.5) person++; }   // a soft edge
   r.confidenceMasks.forEach(k => k.close());
-  if (person < m.length * 0.03) return null;   // nobody there: formula1.com's "no photo" stand-in, shown as it is
+  if (person < m.length * 0.03) {
+    // nobody there: formula1.com has no photo of this driver that year (2023: Lawson, a mid-season stand-in). The next
+    // year's photo from the same library, if there is one; otherwise its "no photo" stand-in, shown as it is
+    const next = url.replace(/\/(\d{4})Drivers\//, (_, y) => `/${+y + 1}Drivers/`);
+    return next !== url && !again ? driver(next, true) : null;
+  }
   x.putImageData(d, 0, 0);
   if (!url.endsWith("#face")) return c.toDataURL("image/png");
   // head and shoulders: a square around the top of the cut-out person, like the face-cropped photos of later years
@@ -65,9 +70,19 @@ async function logo(url) {
   for (let k = 0; k < W; k++) edges.push(k, (H - 1) * W + k);
   for (let k = 0; k < H; k++) edges.push(k * W, k * W + W - 1);
   clear(edges, tile);
+  // the edge where the logo was blended into its tile is a light fringe: clear tile-like pixels beside the cleared ones,
+  // then fade what's left of the edge, so no light outline shows on the dark theme
+  const by = i => { const xx = i % W, yy = (i / W) | 0; return (xx > 0 && seen[i - 1]) || (xx < W - 1 && seen[i + 1]) || (yy > 0 && seen[i - W]) || (yy < H - 1 && seen[i + W]); };
+  const tileish = i => tc ? near(i, tc, 170) : p[i * 4] > 160 && p[i * 4 + 1] > 160 && p[i * 4 + 2] > 160;
+  for (let pass = 0; pass < 2; pass++) {
+    const hit = [];
+    for (let i = 0; i < W * H; i++) if (!seen[i] && p[i * 4 + 3] && tileish(i) && by(i)) hit.push(i);
+    for (const i of hit) { seen[i] = 1; p[i * 4 + 3] = 0; }
+  }
+  for (let i = 0; i < W * H; i++) if (!seen[i] && p[i * 4 + 3] && by(i)) p[i * 4 + 3] = Math.round(p[i * 4 + 3] * 0.55);
   if (GAPS[team]) clear(GAPS[team].map(([fx, fy]) => Math.round(fy * (H - 1)) * W + Math.round(fx * (W - 1))), i => p[i * 4] > 215 && p[i * 4 + 1] > 215 && p[i * 4 + 2] > 215);
   x.putImageData(d, 0, 0);
-  // a dark logo (McLaren's, Alpine's) would vanish on the dark theme: measure it, so the page can outline it there
+  // a dark logo (McLaren's, Alpine's) would vanish on the dark theme: measure it, so the page can give it a lighter tile there
   let sum = 0, n = 0;
   for (let i = 0; i < W * H; i++) if (p[i * 4 + 3] > 128) { sum += 0.299 * p[i * 4] + 0.587 * p[i * 4 + 1] + 0.114 * p[i * 4 + 2]; n++; }
   return { src: c.toDataURL("image/png"), dark: n > 0 && sum / n < 110 };
