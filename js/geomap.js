@@ -124,10 +124,13 @@ export async function createMap(el, { dark, onCar }) {
   map.on("style.load", decorate);
   const ready = new Promise(ok => map.once("load", ok));
   // the map data's licence asks for the credit on the map: shown at first, then folded into the small ⓘ button
-  ready.then(() => setTimeout(() => {
-    const a = el.querySelector(".maplibregl-ctrl-attrib");
-    if (a) { a.classList.remove("maplibregl-compact-show"); a.removeAttribute("open"); }
-  }, 4000));
+  // the map data's licence (OpenStreetMap) asks for its credit on the map: kept as the small ⓘ button, folded from the start
+  // (MapLibre opens it again as the credits load; it stays folded unless you tap the ⓘ yourself)
+  let tapped = false;
+  el.addEventListener("click", e => { if (e.target.closest(".maplibregl-ctrl-attrib-button")) tapped = true; }, true);
+  const fold = () => { const a = el.querySelector(".maplibregl-ctrl-attrib"); if (a && !tapped) { a.classList.add("maplibregl-compact"); a.classList.remove("maplibregl-compact-show"); a.removeAttribute("open"); } };
+  ready.then(fold);
+  for (const ev of ["styledata", "sourcedata", "resize"]) map.on(ev, () => requestAnimationFrame(fold));
 
   // cars: a tag in the team colour standing up over a dot on the track (DOM markers, so they stay upright when tilted)
   const cars = new Map();
