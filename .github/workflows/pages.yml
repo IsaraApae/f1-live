@@ -1,0 +1,53 @@
+# Publishes the site to GitHub Pages: on every push to main, and every 30 minutes so the headlines stay fresh.
+# (Settings → Pages → Source must be "GitHub Actions".)
+name: pages
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# one publish at a time; a queued one waits rather than cancelling a deploy halfway
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node tools/check.mjs
+      - id: pages
+        uses: actions/configure-pages@v5
+      # start from the live news.json: headlines without a date in their feed keep their first-seen time,
+      # and if every feed fails, the last list stays up. A failure here never stops the publish.
+      - name: Collect headlines
+        continue-on-error: true
+        env:
+          SITE: ${{ steps.pages.outputs.base_url }}
+        run: |
+          curl -fsSL --max-time 20 "$SITE/news.json" -o news.json || rm -f news.json
+          node scripts/news.mjs news.json
+      # a new cache name per commit, so installed apps pick up each release (scheduled runs of the same commit keep it)
+      - name: Stamp the service worker
+        run: |
+          sed -i "s/^const VERSION = \"[^\"]*\";/const VERSION = \"${GITHUB_SHA::12}\";/" sw.js
+          grep -q "${GITHUB_SHA::12}" sw.js
+      - uses: actions/upload-pages-artifact@v3   # leaves out .git and .github
+        with:
+          path: .
+      - id: deploy
+        uses: actions/deploy-pages@v4

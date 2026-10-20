@@ -1,3 +1,5 @@
 .DS_Store
 Thumbs.db
 node_modules/
+# built by the publish job (scripts/news.mjs), never committed
+news.json

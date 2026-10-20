@@ -1,8 +1,7 @@
+# Checks pull requests (pushes to main are checked by pages.yml before publishing)
 name: check
 on:
   pull_request:
-  push:
-    branches: [main]
 jobs:
   check:
     runs-on: ubuntu-latest
