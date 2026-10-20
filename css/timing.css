@@ -22,7 +22,7 @@
 .next .what b { font-family: var(--display); font-size: 18px; font-weight: 900; } .next .what span { color: var(--dim); font-weight: 600; font-size: 12.5px; }
 
 /* panels: two columns on a wide screen; on a phone, one group at a time under the sub-tabs */
-
+.seg.tsubs { display: none; }
 .tgrid { display: grid; grid-template-columns: minmax(0, 2.1fr) minmax(360px, 1fr); gap: 12px; align-items: start; }
 .tcol { display: grid; gap: 12px; align-content: start; min-width: 0; }
 .panel .card-h { padding: 10px 14px; }
@@ -31,12 +31,14 @@
 @media (max-width: 1099px) {
   .tgrid { grid-template-columns: minmax(0, 1fr); }
   .tcol { display: contents; }
-  /* one column, everything on one page: the order the old site had */
-  #p-follow { order: 1; } #p-tower { order: 2; } #p-map { order: 3; } #p-bests { order: 4; } #p-rc { order: 5; } #p-pen { order: 6; }
-  #p-pos { order: 7; } #p-strat { order: 8; } #p-champ { order: 9; } #p-pits { order: 10; } #p-radio { order: 11; }
-  #p-fast { order: 12; } #p-dom { order: 13; } #p-ot { order: 14; }
+  .seg.tsubs { display: flex; position: sticky; top: 62px; z-index: 20; box-shadow: 0 6px 14px -8px var(--shadow); }
+  .tgrid[data-show="timing"] .panel:not([data-g~="timing"]), .tgrid[data-show="track"] .panel:not([data-g~="track"]),
+  .tgrid[data-show="rc"] .panel:not([data-g~="rc"]), .tgrid[data-show="radio"] .panel:not([data-g~="radio"]),
+  .tgrid[data-show="more"] .panel:not([data-g~="more"]), .tgrid[data-show="analysis"] .panel:not([data-g~="analysis"]) { display: none; }
+  .tgrid[data-show="track"] #p-follow { order: 2; }
   #map { max-height: none !important; }
 }
+@media (max-width: 899px) { .seg.tsubs { top: calc(58px + env(safe-area-inset-top)); } }
 
 /* driver tag position */
 .posn { display: inline-block; min-width: 22px; text-align: right; margin-right: 9px; font-weight: 900; font-size: 14px; vertical-align: middle; }

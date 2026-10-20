@@ -1,6 +1,9 @@
 // The app: navigation between pages (by the address's #/…), the top bar, and the bottom tabs.
 import { $, $$, ICONS, store } from "./util.js";
 import { busy } from "./api.js";
+import { watch as cutOut2023 } from "./cutout.js";
+
+cutOut2023();   // 2023's driver photos and team logos, cut out from their backgrounds as they appear
 
 // each page is a module: export default { title, tab, mount(el, params, app) → optional clean-up function }
 const ROUTES = [
