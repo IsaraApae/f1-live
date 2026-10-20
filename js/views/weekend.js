@@ -3,7 +3,7 @@
 import { esc, fmtTime, fmtDay, fmtRange, tzName, countdown, countdownHtml, dtagHtml, hex, lapText, ICONS, skeleton, photo } from "../util.js";
 import { of1, forecast, forecastFor } from "../api.js";
 import { season } from "../season.js";
-import { buildIcs, downloadIcs, weekendUrl, shortName, ADD_ICON, wxHtml, flagImg } from "../ics.js";
+import { shortName, wxHtml, flagImg } from "../calendar-ui.js";
 
 const MIN = 60000, DAY = 86400000, FORECAST_DAYS = 16 * DAY;
 // like season.js liveSession(): "on" from 15 minutes before the start to 30 after the end
@@ -74,8 +74,8 @@ export default {
     const S = r.sessions;
     const got = {}, cond = {};            // session key → results / track conditions: { busy } | { err } | data
     const open = new Set(), all = new Set();
-    // results for the last two finished sessions straight away, the rest when opened (OpenF1 allows 30 requests a minute)
-    for (const x of S.filter(x => x.key && phase(x, Date.now()) === "done").slice(-2)) open.add(x.key);
+    // every finished session's results straight away (a weekend has at most seven, well within OpenF1's 30 requests a minute)
+    for (const x of S.filter(x => x.key && phase(x, Date.now()) === "done")) open.add(x.key);
     const podiumKey = (S.find(x => x.kind === "race" && x.key) || {}).key;
     let fc = null, timer = 0;
 
@@ -136,6 +136,9 @@ export default {
       </section>`;
     }
 
+    // this year's portrait of a driver (OpenF1's driver record)
+    const pic = (d, px, c) => `<img class="face wkd-face" src="${esc(photo({ HeadshotUrl: d.headshot_url, FirstName: d.first_name, LastName: d.last_name, TeamName: d.team_name }, px, year))}" alt="" loading="lazy" style="background:${esc(c)}" onerror="this.style.visibility='hidden'">`;
+
     function podiumHtml() {
       const g = got[podiumKey];
       if (!g || g.busy) return `<small class="wkd-lbl">Podium</small>${skeleton(1)}`;
@@ -143,9 +146,7 @@ export default {
       const top = [...g.res].sort(byPos).filter(e => num(e.position)).slice(0, 3);
       return `<small class="wkd-lbl">Podium</small><div class="wkd-pods">${top.map(e => {
         const d = g.names(podiumKey, e.driver_number) || {}, c = hex(d.team_colour);
-        // this season's photos come from formula1.com; older seasons have OpenF1's own headshot (or none)
-        const pic = year === new Date().getFullYear() ? photo({ HeadshotUrl: d.headshot_url, FirstName: d.first_name, LastName: d.last_name, TeamName: d.team_name }, 112, year) : d.headshot_url;
-        return `<div class="wkd-pd" style="--tc:${esc(c)}"><span class="p">${e.position}</span>${pic ? `<img class="face wkd-face" src="${esc(pic)}" alt="" style="background:${esc(c)}" onerror="this.remove()">` : ""}${dtagHtml(e.driver_number, d.name_acronym, c, true)}
+        return `<div class="wkd-pd" style="--tc:${esc(c)}"><span class="p">${e.position}</span>${d.last_name ? pic(d, 112, c) : ""}${dtagHtml(e.driver_number, d.name_acronym, c, true)}
           <b>${esc(d.last_name || `Car ${e.driver_number}`)}</b><small>${esc(d.team_name || "")}</small></div>`;
       }).join("")}</div>`;
     }
@@ -185,6 +186,7 @@ export default {
           const d = g.names(x.key, e.driver_number) || {}, c = hex(d.team_colour), [main, sub] = resultText(x, e);
           return `<li class="row wkd-r${e.position === 1 ? " p1" : ""}${e.dnf || e.dns || e.dsq ? " out" : ""}" style="--tc:${esc(c)}">
             <span class="wkd-p">${num(e.position) ? e.position : "–"}</span>
+            ${d.last_name ? pic(d, 64, c).replace("wkd-face", "wkd-rface") : `<span class="face wkd-rface"></span>`}
             ${dtagHtml(e.driver_number, d.name_acronym, c, true)}
             <span class="main"><b>${esc(d.first_name ? `${d.first_name} ${d.last_name}` : `Car ${e.driver_number}`)}</b><small>${esc(d.team_name || "")}</small></span>
             <span class="end">${esc(main)}<small>${esc(sub)}</small></span>
@@ -210,16 +212,8 @@ export default {
     }
 
     function asideHtml(t) {
-      const left = S.filter(x => x.end > t);
       const nav = [[s.rounds[idx - 1], "Previous"], [s.rounds[idx + 1], "Next"]].filter(([o]) => o);
-      return `${left.length ? `<section class="card">
-          <h3 class="card-h">Your calendar</h3>
-          <div class="card-b wkd-cal">
-            <p>${left.length === S.length ? "Every session" : `The ${left.length} sessions still to come`} of this weekend, each with a reminder 15 minutes before.</p>
-            <button class="btn primary" type="button" data-ics>${ADD_ICON}Add this weekend to my calendar</button>
-          </div>
-        </section>` : ""}
-        ${nav.length ? `<section class="card">
+      return `${nav.length ? `<section class="card">
           <h3 class="card-h">More rounds <a class="more" href="#/calendar">Full calendar${ICONS.chevron}</a></h3>
           <div class="rows">${nav.map(([o, lbl]) => `<a class="row wkd-nav" href="#/calendar/${year}/${o.round}">${flagImg(o)}
             <span class="main"><b>${esc(o.name)}</b><small>${lbl} · Round ${o.round} · ${fmtRange(o.start, o.end)}</small></span>${ICONS.chevron.replace("<svg", `<svg class="chev"`)}</a>`).join("")}</div>
@@ -235,24 +229,9 @@ export default {
       paintWx();
     }
 
-    function saveIcs() {
-      const left = S.filter(x => x.end > Date.now()).map(x => ({ ...x, round: r }));
-      if (!left.length) return;
-      const file = `f1-${year}-${r.name.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}.ics`;
-      downloadIcs(file, buildIcs(left, { year, calName: `F1 · ${shortName(r.name)}`, link: o => weekendUrl(year, o) }));
-      app.toast(`<div><b>Calendar file saved</b><br><small class="dim">Open ${esc(file)} to add ${left.length} sessions to your calendar app.</small></div>`, { ms: 6000 });
-    }
-
-    // the toolbar button: the same calendar file, one tap away on a phone
-    if (S.some(x => x.end > Date.now())) {
-      const tb = app.setTools(`<button class="iconbtn" type="button" aria-label="Add this weekend to my calendar" title="Add this weekend to my calendar">${ADD_ICON}</button>`);
-      tb.querySelector("button").addEventListener("click", saveIcs);
-    }
-
     el.addEventListener("click", e => {
-      const b = e.target.closest("[data-toggle],[data-all],[data-cond],[data-retry],[data-ics]");
+      const b = e.target.closest("[data-toggle],[data-all],[data-cond],[data-retry]");
       if (!b) return;
-      if (b.dataset.ics != null) return saveIcs();
       const k = +(b.dataset.toggle || b.dataset.all || b.dataset.cond || b.dataset.retry), i = S.findIndex(x => x.key === k);
       if (b.dataset.toggle) {
         if (open.has(k)) open.delete(k);

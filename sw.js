@@ -7,7 +7,7 @@ const CACHE = "f1live-" + VERSION;
 const SHELL = [
   "./", "manifest.webmanifest", "icons/icon.svg", "icons/icon-180.png", "icons/icon-192.png",
   "css/app.css", "css/timing.css", "css/calendar.css", "css/standings.css", "css/battle.css", "css/news.css",
-  "js/main.js", "js/util.js", "js/api.js", "js/season.js", "js/news.js", "js/timing.js", "js/analysis.js", "js/stats.js", "js/ics.js",
+  "js/main.js", "js/util.js", "js/api.js", "js/season.js", "js/news.js", "js/timing.js", "js/analysis.js", "js/stats.js", "js/calendar-ui.js", "js/geomap.js",
   "js/views/home.js", "js/views/live.js", "js/views/calendar.js", "js/views/weekend.js", "js/views/standings.js", "js/views/driver.js",
   "js/views/team.js", "js/views/replay.js", "js/views/battle.js", "js/views/news.js", "js/views/settings.js"
 ];

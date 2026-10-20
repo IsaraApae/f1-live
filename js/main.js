@@ -18,11 +18,11 @@ const ROUTES = [
   [/^\/settings$/, "settings"]
 ];
 // bottom tabs on a phone; the side menu on a computer has these plus the rest
-const TABS = [["home", "#/", "Home"], ["live", "#/live", "Live"], ["calendar", "#/calendar", "Calendar"], ["standings", "#/standings", "Standings"]];
-const MORE = [["battle", "#/battle", "Lap battle"], ["news", "#/news", "News"], ["settings", "#/settings", "Settings"]];
+const TABS = [["home", "#/", "Home"], ["live", "#/live", "Live"], ["calendar", "#/calendar", "Calendar"], ["standings", "#/standings", "Standings"], ["battle", "#/battle", "Lap battle"]];
+const MORE = [["news", "#/news", "News"], ["settings", "#/settings", "Settings"]];
 
 const link = ([id, href, label]) => `<a href="${href}" data-tab="${id}">${ICONS[id]}<span>${label}</span></a>`;
-$("#tabbar").innerHTML = TABS.map(link).join("");
+$("#tabbar").innerHTML = TABS.map(([id, href, label]) => link([id, href, id === "battle" ? "Battle" : label])).join("");   // short label for the phone's tab
 $("#railLinks").innerHTML = TABS.map(link).join("") + `<hr>` + MORE.map(link).join("");
 $("#back").innerHTML = ICONS.back;
 // setBack("back"): the arrow goes back to wherever you came from (the home page if you opened the link directly)

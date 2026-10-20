@@ -1,9 +1,9 @@
 // The season calendar: every Grand Prix weekend in the viewer's own time zone, the next one up top with a live
-// countdown and the forecast, winners of finished races, and a calendar file (.ics) of every session still to come.
+// countdown and the forecast, and the winners of finished races.
 import { esc, fmtTime, fmtDay, fmtWhen, fmtRange, tzName, countdownHtml, dtagHtml, ICONS, skeleton } from "../util.js";
 import { jolpica, forecast, forecastFor } from "../api.js";
-import { season, currentSeason, allSessions, liveSession, nextSession } from "../season.js";
-import { buildIcs, downloadIcs, weekendUrl, shortName, ADD_ICON, wxHtml, flagImg } from "../ics.js";
+import { season, currentSeason, liveSession, nextSession, pickedYear, pickYear } from "../season.js";
+import { shortName, wxHtml, flagImg } from "../calendar-ui.js";
 import { standings as seasonStandings, faceHtml } from "../stats.js";
 
 const DAY = 86400000, FORECAST_DAYS = 16 * DAY;   // Open-Meteo forecasts 16 days ahead
@@ -13,8 +13,8 @@ const TEAM_COLOUR = { mercedes: "#00D7B6", ferrari: "#ED1131", mclaren: "#F47600
   williams: "#1868DB", rb: "#6C98FF", haas: "#9C9FA2", audi: "#F50537", cadillac: "#909090", sauber: "#52E252", alphatauri: "#5E8FAA", alfa: "#C92D4B" };
 const FILTERS = [["all", "All"], ["next", "Upcoming"], ["done", "Results"]];
 
-// kept while moving between pages, so coming back from a weekend shows the same season and filter
-let picked = { year: null, filter: "all" };
+// the filter stays while moving between pages; the season is shared with the Standings page (season.js pickYear)
+let picked = { filter: "all" };
 
 const failCard = what => `<div class="card"><p class="note-line">Couldn't load ${esc(what)}. <button class="btn small" type="button" data-retry>Try again</button></p></div>`;
 const loading = () => `<section class="hero">${skeleton(4)}</section><div class="card">${skeleton(8)}</div>`;
@@ -37,13 +37,13 @@ export default {
     catch (e) { if (el.isConnected) { el.innerHTML = failCard("the calendar"); el.querySelector("[data-retry]").onclick = () => location.reload(); } return; }
     if (!el.isConnected) return;
     for (let y = FIRST_YEAR; y <= cur.year; y++) years.push(y);
-    year = years.includes(picked.year) ? picked.year : cur.year;
+    year = years.includes(pickedYear()) ? pickedYear() : cur.year;
     fillYears();
     // next year's calendar, once it's out
     jolpica(`${cur.year + 1}.json`, { ttl: DAY }).then(j => {
       if (el.isConnected && j && j.MRData.RaceTable.Races.length) { years.push(cur.year + 1); fillYears(); }
     }).catch(() => {});
-    sel.addEventListener("change", () => { year = picked.year = +sel.value; load(); });
+    sel.addEventListener("change", () => { year = +sel.value; pickYear(year); load(); });
 
     async function load() {
       const mine = ++gen;
@@ -80,7 +80,6 @@ export default {
       if (!rounds.length) { el.innerHTML = `<div class="card"><p class="note-line">The ${year} calendar isn't out yet.</p></div>`; return; }
       const live = liveSession(rounds, now);
       const next = year === cur.year ? rounds.find(r => r.end > now || (live && live.round === r)) : null;
-      const left = allSessions(rounds).filter(x => x.end > now);
       const done = rounds.filter(r => r.end < now).length;
       el.innerHTML =
         (next ? heroHtml(next, live, now) : "") +
@@ -88,7 +87,6 @@ export default {
           <div class="cal-season-top">
             <div class="cal-season-t"><b>${year} season</b>
               <small>${done === rounds.length ? `All ${rounds.length} rounds finished` : done ? `${done} of ${rounds.length} rounds finished · ${rounds.length - done} to go` : `${rounds.length} rounds`}</small></div>
-            ${left.length ? `<button class="btn" type="button" data-ics title="A calendar file with the ${left.length} sessions still to come, each with a reminder 15 minutes before">${ADD_ICON}<span>Add to calendar</span></button>` : ""}
           </div>
           <div class="cal-bar" role="progressbar" aria-label="Season progress" aria-valuemin="0" aria-valuemax="${rounds.length}" aria-valuenow="${done}"><i style="width:${(done / rounds.length * 100).toFixed(1)}%"></i></div>
           <div class="cal-season-bot">
@@ -190,13 +188,6 @@ export default {
         const next = year === cur.year ? data.rounds.find(r => r.end > now || (live && live.round === r)) : null;
         el.querySelector(".cal-list").innerHTML = listHtml(data.rounds, data.wins, live, next, now);
         return;
-      }
-      if (e.target.closest("[data-ics]") && data) {
-        const left = allSessions(data.rounds).filter(x => x.end > Date.now());
-        if (!left.length) return;
-        const name = `f1-${year}-calendar.ics`;
-        downloadIcs(name, buildIcs(left, { year, calName: `F1 ${year}`, link: r => weekendUrl(year, r) }));
-        app.toast(`<div><b>Calendar file saved</b><br><small class="dim">Open ${esc(name)} to add ${left.length} sessions (with a reminder 15 minutes before each) to your calendar app.</small></div>`, { ms: 6000 });
       }
     });
 
