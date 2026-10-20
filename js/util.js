@@ -62,9 +62,21 @@ export function photo(d, px, year = new Date().getFullYear()) {
   const team = teamSlug(d.TeamName, y);
   return `https://media.formula1.com/image/upload/c_thumb,g_face,z_0.6,w_${px},h_${px}/d_common:f1:${y}:fallback:driver:${y}fallbackdriverright.webp/common/f1/${y}/${team}/${code}/${y}${team}${code}right.webp`;
 }
-// the SVG logo, sharp at any size (formula1.com's PNG versions are only 96 px); 2023's only come as PNG, in colour
+// 2023's logos on formula1.com are 96 px badges on a tile. Instead: the teams that carried on with the same logo get
+// their transparent 2024 one (with its white version); Alfa Romeo the team's wordmark (Wikimedia Commons, public domain);
+// AlphaTauri its "AT" mark from formula1.com's full-size logo (flat navy on white, separated in cutout.js).
+// "#invert" (and cutout's "-invert") shows a one-colour logo in white, for the dark theme.
+const LOGO_2023 = {
+  alfaromeo: "https://upload.wikimedia.org/wikipedia/commons/d/d4/Alfa_Romeo_F1_Team_Stake_Logo.svg",
+  alphatauri: "https://media.formula1.com/content/dam/fom-website/2018-redesign-assets/team%20logos/alphatauri.png#mark"
+};
+// the SVG logo, sharp at any size (formula1.com's PNG versions are only 96 px)
 export const teamLogo = (team, white, year = new Date().getFullYear()) => {
-  if (+year < 2024) return `${OLD}/teams/${year}/${oldTeam(team)}-logo.png`;
+  if (+year < 2024) {
+    const own = LOGO_2023[slug(team)];
+    if (own) return own + (white ? (own.includes("#") ? "-invert" : "#invert") : "");
+    year = 2024;   // the same team's same logo, a year on
+  }
   const t = teamSlug(team, +year); return `https://media.formula1.com/image/upload/common/f1/${year}/${t}/${year}${t}logo${white ? "white" : ""}.svg`;
 };
 // the team's car, side on, facing right
