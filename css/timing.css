@@ -112,8 +112,6 @@ small.u { color: var(--dim); font-size: 10px; }
 .legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
 @keyframes blink { 50% { opacity: .25; } }
 #flags .yf { animation: blink 1s steps(2, jump-none) infinite; }
-.otz circle { fill: color-mix(in srgb, var(--amber) 45%, transparent); stroke: var(--amber); stroke-width: 1.2; }
-.otz text { font-size: 8px; font-weight: 900; text-anchor: middle; fill: var(--text); }
 .legend2 { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11px; color: var(--dim); font-weight: 700; text-transform: none; letter-spacing: 0; }
 .legend2 i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
 

@@ -13,7 +13,7 @@ A free Formula 1 companion in the browser: live timing, the track on a real 3D m
 | **Track map** | The circuit on a real map of its surroundings (streets, water, 3D buildings), tilted in 3D or seen from the top, with every car on it; or the classic flat outline. |
 | **Calendar** | Every weekend of the season with session times in your time zone, countdowns, forecasts and winners (with their photos, every season since 2023). Each weekend has its own page with every session's results, driver photos and replays. |
 | **Standings** | Drivers' and teams' championships since 2023, with that year's driver photos, team logos and cars. The season picked here and on the Calendar is the same, with a page for each driver (stats, points chart, race-by-race results, teammate head-to-head) and each team. |
-| **Replays** | Any session since 2023, rebuilt lap by lap, on the same timing screen, opened from a weekend's page, Home or Live. Plus analysis: fastest laps, overtakes and where on the track they happened, track dominance between drivers, and car telemetry (speed, gear, throttle, brake, RPM, DRS) for the driver you follow. |
+| **Replays** | Any session since 2023, rebuilt lap by lap, on the same timing screen, opened from a weekend's page, Home or Live. Plus analysis: fastest laps, overtakes, track dominance between drivers, and car telemetry (speed, gear, throttle, brake, RPM, DRS) for the driver you follow. |
 | **Lap battle** | Two drivers' laps raced against each other round the circuit at 60 fps, with speed, throttle, brake and the time gap. Save it as a video to share. |
 | **News** | Headlines from F1 publishers, linking to their articles. |
 | **Settings** | Dark, light or device appearance, 12- or 24-hour clock, your driver and team, alerts. |
