@@ -1,7 +1,7 @@
 // A team's season: championship place, both drivers, stats, points round by round and every race's pair of results.
 import { esc, note, skeleton, tagVars, dtagHtml, fmtShortDate, teamCar } from "../util.js";
 import { season } from "../season.js";
-import { standings, results, latestYear, parseId, yearPick, driverHref, teamHref, faceHtml, logoHtml, pts, ptsWord, infoLine, short, outcome, isDnf, scale, liveChart, fillFlags, NOW } from "../stats.js";
+import { standings, results, latestYear, parseId, yearPick, driverHref, teamHref, faceHtml, logoHtml, pts, ptsWord, infoLine, short, outcome, isDnf, scale, liveChart, fillFlags, roundsOf, teammates, h2hHtml, NOW } from "../stats.js";
 
 // the second (and third) driver's share of a bar: the team colour, shifted toward the page's text colour
 const shade = (c, k) => k ? `color-mix(in srgb, ${c} ${k === 1 ? 58 : 32}%, var(--text))` : c;
@@ -37,13 +37,14 @@ export default {
 
     const rounds = res.map(R => ({ R, race: R.race.filter(x => x.cid === id), sprint: R.sprint.filter(x => x.cid === id), q: R.quali.filter(x => x.cid === id) }))
                       .filter(x => x.race.length || x.sprint.length);
-    const crew = lineup(t, rounds, st);
+    const crew = lineup(t, rounds, st), pairs = pairings(res, t, crew);
     el.querySelector(".st-cols").innerHTML = `
       <div class="stack">
         <section class="card" style="${tagVars(t.colour)}"><h2 class="card-h">Drivers</h2>
           <div class="st-drivers">${crew.slice(0, 2).map(driverTile).join("")}</div>
           ${crew.length > 2 ? `<p class="st-also">Also drove: ${crew.slice(2).map(x => `<a href="${driverHref(x.d.id, x.d.year)}">${esc(x.d.name)}</a> (${x.races} race${x.races === 1 ? "" : "s"}, ${ptsWord(x.points)})`).join(", ")}</p>` : ""}
         </section>
+        ${pairs.length ? `<section class="card st-h2h-card" style="${tagVars(t.colour)}"><h2 class="card-h">Teammate head-to-head</h2><div class="st-h2h"></div></section>` : ""}
         <section class="card"><h2 class="card-h">${year} season</h2>${tiles(t, rounds)}</section>
         <section class="card"><h2 class="card-h">Points by round</h2>
           <div class="st-chart"></div>
@@ -59,6 +60,13 @@ export default {
     let stop = null;
     if (res.length) stop = liveChart(box, w => bars(w, res, t, crew));
     else box.innerHTML = note("No rounds yet.");
+    // the two drivers' battle, with a pick for the other pairings when someone stood in
+    const h2hBox = el.querySelector(".st-h2h");
+    const showPair = k => { h2hBox.innerHTML = h2h(pairs, +k); };
+    if (h2hBox) {
+      showPair(0);
+      h2hBox.addEventListener("click", e => { const b = e.target.closest("[data-pair]"); if (b) showPair(b.dataset.pair); });
+    }
     calP.then(cal => fillFlags(el, cal));
     return stop;
   }
@@ -98,6 +106,25 @@ function lineup(t, rounds, st) {
   const now = t.drivers.map(d => d.id);
   return [...by.values()].map(e => ({ ...e, d: st.drivers.find(d => d.id === e.id) })).filter(e => e.d)
     .sort((a, b) => (now.includes(b.id) - now.includes(a.id)) || (now.indexOf(a.id) - now.indexOf(b.id)) || (b.races - a.races));
+}
+
+// every pair of the team's drivers who shared the garage, most rounds together first (the regular pair)
+function pairings(res, t, crew) {
+  const out = [];
+  crew.forEach((a, i) => {
+    for (const h of teammates(roundsOf(res, a.id, t.id), a.id)) {
+      const j = crew.findIndex(c => c.id === h.id);
+      if (j > i) out.push({ a: a.d, b: crew[j].d, h, k: i * 100 + j });
+    }
+  });
+  return out.sort((x, y) => y.h.n - x.h.n || x.k - y.k);
+}
+
+function h2h(pairs, k) {
+  const p = pairs[k] || pairs[0];
+  const chips = pairs.length > 1 ? `<div class="chips">${pairs.map((x, i) =>
+    `<button type="button" data-pair="${i}" aria-pressed="${x === p}">${esc(x.a.last)} vs ${esc(x.b.last)} (${x.h.n})</button>`).join("")}</div>` : "";
+  return h2hHtml(p.a, p.b, p.h, chips);
 }
 
 function driverTile(x) {

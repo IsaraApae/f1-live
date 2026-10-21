@@ -216,3 +216,39 @@ export function liveChart(box, draw) {
   ro.observe(box); render();
   return () => ro.disconnect();
 }
+
+// teammate head-to-head, from one driver's side. mine: [{ R, race, sprint, q }] for that driver, one per round they drove.
+// Every other driver in the same car that round is a teammate: qualifying (both set a place), races (unless neither was classified,
+// or either didn't start), and points together. Sorted by rounds shared, so the regular teammate comes first.
+export const roundsOf = (res, id, cid) => res.map(R => ({ R, race: R.race.find(x => x.id === id), sprint: R.sprint.find(x => x.id === id), q: R.quali.find(x => x.id === id) }))
+  .filter(x => (x.race || x.sprint) && (!cid || (x.race || x.sprint).cid === cid));
+export function teammates(mine, id) {
+  const by = new Map(), out = x => /^[WFE]$/.test(x.text) || /did not start|withdr/i.test(x.status);
+  for (const { R, race, sprint, q } of mine) {
+    const cid = (race || sprint).cid;
+    const others = new Set(R.race.concat(R.sprint).filter(x => x.cid === cid && x.id !== id).map(x => x.id));
+    for (const m of others) {
+      const h = by.get(m) || { id: m, n: 0, q: [0, 0], r: [0, 0], p: [0, 0] };
+      by.set(m, h);
+      const mq = R.quali.find(x => x.id === m), mr = R.race.find(x => x.id === m), ms = R.sprint.find(x => x.id === m);
+      h.n++;
+      if (q && mq && q.pos && mq.pos) h.q[q.pos < mq.pos ? 0 : 1]++;
+      if (race && mr && (race.classified || mr.classified) && !out(race) && !out(mr)) h.r[race.pos < mr.pos ? 0 : 1]++;
+      h.p[0] += (race ? race.points : 0) + (sprint ? sprint.points : 0);
+      h.p[1] += (mr ? mr.points : 0) + (ms ? ms.points : 0);
+    }
+  }
+  return [...by.values()].sort((a, b) => b.n - a.n);
+}
+// a against b, from a record h made on a's side; chips (optional) pick between pairings
+export function h2hHtml(a, b, h, chips = "") {
+  const line = (label, [x, y], fmt = String) => `<div class="st-hrow">
+    <b class="${x > y ? "win" : ""}">${fmt(x)}</b>
+    <div><small>${label}</small><span class="st-split${x + y ? "" : " none"}"><i style="flex:${x || (x + y ? 0.0001 : 1)}"></i><i style="flex:${y || (x + y ? 0.0001 : 1)}"></i></span></div>
+    <b class="${y > x ? "win" : ""}">${fmt(y)}</b></div>`;
+  const who = (d, side) => `<a class="st-who ${side}" href="${driverHref(d.id, d.year)}">${faceHtml(d, 88)}<span><b>${esc(d.last)}</b><small>P${esc(d.posText)} · ${pts(d.points)} pts</small></span></a>`;
+  return `${chips}
+    <div class="st-h2h-top">${who(a, "")}<span class="st-vs">VS</span>${who(b, "r")}</div>
+    ${line("Qualifying", h.q)}${line("Race", h.r)}${line("Points together", h.p, pts)}
+    <p class="st-h2h-note">${h.n} round${h.n > 1 ? "s" : ""} as teammates. Races count who finished ahead: a retirement counts as behind, and races where neither was classified aren't counted.</p>`;
+}
