@@ -1,6 +1,6 @@
 // Lap battle: pick a session and two drivers, then watch their laps race each other round the circuit (a canvas "film"),
 // compare the telemetry by distance, and save the film as a video to share.
-import { $, $$, esc, clamp, store, hex, slug, lapText, photo, dtagHtml, skeleton, ICONS } from "../util.js";
+import { $, $$, esc, clamp, hex, slug, lapText, photo, dtagHtml, skeleton, ICONS } from "../util.js";
 import { of1 } from "../api.js";
 import { season, currentSeason, allSessions } from "../season.js";
 import { lapModel, Film, PRE, fmtLap, similar, videoType, startRecording } from "../battle-film.js";
@@ -96,7 +96,9 @@ export default {
     let alive = true;
     const live = () => alive && el.isConnected;
     const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const look = () => store.get("f1.battleLook", "dark");
+    const look = () => document.documentElement.dataset.mode === "light" ? "light" : "dark";   // the film follows the site's appearance
+    const retheme = () => { if (V.film) { V.film.setStyle(look()); kick(); } };
+    addEventListener("themechange", retheme);
 
     el.innerHTML = `
       <section class="card bt-pick">${skeleton(3)}</section>
@@ -113,7 +115,6 @@ export default {
             </div>
             <div class="bt-row">
               <div class="seg" data-g="speed" role="group" aria-label="Playback speed">${[0.25, 0.5, 1, 2, 4].map(v => `<button type="button" data-v="${v}" aria-pressed="${v === 1}">${v}×</button>`).join("")}</div>
-              <div class="bt-look"><span>Film</span><div class="seg" data-g="look" role="group" aria-label="Film style">${["dark", "light"].map(v => `<button type="button" data-v="${v}" aria-pressed="${look() === v}">${v === "dark" ? "Dark" : "Light"}</button>`).join("")}</div></div>
               <div class="bt-acts">
                 <button class="btn small ghost" type="button" data-act="restart">${RESTART}Restart</button>
                 <button class="btn small" type="button" data-act="link">${LINK}Copy link</button>
@@ -353,8 +354,7 @@ export default {
       const g = b.closest(".seg");
       if (g) {
         for (const x of $$("button", g)) x.setAttribute("aria-pressed", x === b);
-        if (g.dataset.g === "speed") V.speed = +b.dataset.v;
-        else { store.set("f1.battleLook", b.dataset.v); V.film.setStyle(b.dataset.v); kick(); }
+        V.speed = +b.dataset.v;
         return;
       }
       const act = b.dataset.act;
@@ -601,6 +601,7 @@ export default {
       for (const u of V.urls) URL.revokeObjectURL(u);
       removeEventListener("keydown", onKey);
       document.removeEventListener("visibilitychange", onVis);
+      removeEventListener("themechange", retheme);
     };
   }
 };

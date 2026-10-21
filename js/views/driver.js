@@ -1,7 +1,7 @@
 // A driver's season: championship place, stats, points over the year, every race, and the teammate battle.
 import { esc, note, skeleton, tagVars, fmtShortDate } from "../util.js";
 import { season } from "../season.js";
-import { standings, results, latestYear, parseId, yearPick, driverHref, teamHref, faceHtml, logoHtml, pts, ptsWord, infoLine, short, outcome, isDnf, scale, liveChart, fillFlags, NOW } from "../stats.js";
+import { standings, results, latestYear, parseId, yearPick, driverHref, teamHref, faceHtml, logoHtml, pts, ptsWord, infoLine, short, outcome, isDnf, scale, liveChart, fillFlags, roundsOf, teammates, h2hHtml, NOW } from "../stats.js";
 
 export default {
   title: "Driver",
@@ -33,8 +33,7 @@ export default {
     catch (e) { if (el.isConnected) el.querySelector(".st-cols").innerHTML = failed(); return; }
     if (!el.isConnected) return;
 
-    const mine = res.map(R => ({ R, race: R.race.find(x => x.id === id), sprint: R.sprint.find(x => x.id === id), q: R.quali.find(x => x.id === id) }))
-                    .filter(x => x.race || x.sprint);
+    const mine = roundsOf(res, id);
     const teamOf = cid => st.teams.find(t => t.id === cid) || { name: cid, colour: d.colour };
     const rival = st.drivers[0].id === id ? st.drivers[1] : st.drivers[0];
     const mates = teammates(mine, id);
@@ -179,38 +178,11 @@ function raceRow({ R, race, sprint, q }, d, teamOf) {
   </li>`;
 }
 
-// head-to-head against each teammate: qualifying, races (when at least one saw the flag), points together
-function teammates(mine, id) {
-  const by = new Map();
-  for (const { R, race, sprint, q } of mine) {
-    const cid = (race || sprint).cid;
-    const others = new Set(R.race.concat(R.sprint).filter(x => x.cid === cid && x.id !== id).map(x => x.id));
-    for (const m of others) {
-      const h = by.get(m) || { id: m, n: 0, q: [0, 0], r: [0, 0], p: [0, 0] };
-      by.set(m, h);
-      const mq = R.quali.find(x => x.id === m), mr = R.race.find(x => x.id === m), ms = R.sprint.find(x => x.id === m);
-      h.n++;
-      if (q && mq && q.pos && mq.pos) h.q[q.pos < mq.pos ? 0 : 1]++;
-      if (race && mr && !(isDnf(race) && isDnf(mr)) && !/^[WFE]$/.test(race.text) && !/^[WFE]$/.test(mr.text)) h.r[race.pos < mr.pos ? 0 : 1]++;
-      h.p[0] += (race ? race.points : 0) + (sprint ? sprint.points : 0);
-      h.p[1] += (mr ? mr.points : 0) + (ms ? ms.points : 0);
-    }
-  }
-  return [...by.values()].sort((a, b) => b.n - a.n);
-}
-
+// head-to-head against one teammate, with a pick when there was more than one
 function h2h(d, mates, mid, st) {
   const h = mates.find(m => m.id === mid) || mates[0], m = st.drivers.find(x => x.id === h.id);
   if (!m) return note("No teammate data.");
-  const line = (label, [a, b], fmt = String) => `<div class="st-hrow">
-    <b class="${a > b ? "win" : ""}">${fmt(a)}</b>
-    <div><small>${label}</small><span class="st-split${a + b ? "" : " none"}"><i style="flex:${a || (a + b ? 0.0001 : 1)}"></i><i style="flex:${b || (a + b ? 0.0001 : 1)}"></i></span></div>
-    <b class="${b > a ? "win" : ""}">${fmt(b)}</b></div>`;
-  const who = (x, side) => `<a class="st-who ${side}" href="${driverHref(x.id, x.year)}">${faceHtml(x, 88)}<span><b>${esc(x.last)}</b><small>P${esc(x.posText)} · ${pts(x.points)} pts</small></span></a>`;
-  return `
-    ${mates.length > 1 ? `<div class="chips">${mates.map(x => { const p = st.drivers.find(y => y.id === x.id);
-      return `<button type="button" data-mate="${esc(x.id)}" aria-pressed="${x.id === h.id}">vs ${esc(p ? p.last : x.id)} (${x.n})</button>`; }).join("")}</div>` : ""}
-    <div class="st-h2h-top">${who(d, "")}<span class="st-vs">VS</span>${who(m, "r")}</div>
-    ${line("Qualifying", h.q)}${line("Race", h.r)}${line("Points together", h.p, pts)}
-    <p class="st-h2h-note">${h.n} round${h.n > 1 ? "s" : ""} as teammates. Races count who finished ahead; a retirement counts as behind.</p>`;
+  const chips = mates.length > 1 ? `<div class="chips">${mates.map(x => { const p = st.drivers.find(y => y.id === x.id);
+    return `<button type="button" data-mate="${esc(x.id)}" aria-pressed="${x.id === h.id}">vs ${esc(p ? p.last : x.id)} (${x.n})</button>`; }).join("")}</div>` : "";
+  return h2hHtml(d, m, h, chips);
 }

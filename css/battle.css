@@ -54,8 +54,6 @@
 .bt-scrub::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; margin-top: -5.5px; border-radius: 50%; background: var(--text); box-shadow: 0 0 0 3px color-mix(in srgb, var(--red) 70%, transparent); }
 .bt-scrub::-moz-range-thumb { width: 16px; height: 16px; border: 0; border-radius: 50%; background: var(--text); box-shadow: 0 0 0 3px color-mix(in srgb, var(--red) 70%, transparent); }
 .bt-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 6px 14px 14px; }
-.bt-look { display: inline-flex; align-items: center; gap: 8px; }
-.bt-look > span { color: var(--dim); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; }
 .bt-acts { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
 /* while recording, only Cancel works */
 .bt-recording .bt-bar, .bt-recording .bt-row { display: none; }
@@ -124,7 +122,6 @@
   .bt-now { font-size: 15px; min-width: 66px; }
   .bt-row { padding: 4px 12px 12px; gap: 8px; justify-content: space-between; }
   .bt-row .seg button { padding: 6px 10px; }
-  .bt-look { gap: 6px; }
   .bt-acts { width: 100%; margin: 2px 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .bt-acts .btn { padding: 8px 6px; }
   .bt-h2h .hd, .bt-h2h .r { grid-template-columns: minmax(0, 1fr) 84px 84px; padding: 8px 14px; }
