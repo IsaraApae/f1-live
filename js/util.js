@@ -52,6 +52,9 @@ const TEAM_SLUG = { 2024: { haasf1team: "haas" } };
 const teamSlug = (team, y) => { const s = slug(team); return (TEAM_SLUG[y] || {})[s] || s; };
 const oldTeam = team => (team || "").toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const OLD = "https://media.formula1.com/content/dam/fom-website";
+// drivers formula1.com has no photo of in a season (checked for 2024-2026): the year and team of the photo to show instead
+// (2024: Doohan, Alpine's stand-in for the last race only; his 2025 Alpine photo)
+const PHOTO_FROM = { "2024:jacdoo01": [2025, "Alpine"] };
 // d: { HeadshotUrl, FirstName, LastName, TeamName }
 export function photo(d, px, year = new Date().getFullYear()) {
   const y = +year;
@@ -59,8 +62,9 @@ export function photo(d, px, year = new Date().getFullYear()) {
   if (y < 2024) return `https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/${y}Drivers/${plain(d.LastName).toLowerCase()}.png.transform/2col-retina/image.png${px <= 200 ? "#face" : ""}`;
   const m = /\/([A-Z]{6}\d{2})_/.exec(d.HeadshotUrl || "");
   const code = m ? m[1].toLowerCase() : (plain(d.FirstName).slice(0, 3) + plain(d.LastName).slice(0, 3) + "01").toLowerCase();
-  const team = teamSlug(d.TeamName, y);
-  return `https://media.formula1.com/image/upload/c_thumb,g_face,z_0.6,w_${px},h_${px}/d_common:f1:${y}:fallback:driver:${y}fallbackdriverright.webp/common/f1/${y}/${team}/${code}/${y}${team}${code}right.webp`;
+  const [py, pteam] = PHOTO_FROM[`${y}:${code}`] || [y, d.TeamName];
+  const team = teamSlug(pteam, py);
+  return `https://media.formula1.com/image/upload/c_thumb,g_face,z_0.6,w_${px},h_${px}/d_common:f1:${py}:fallback:driver:${py}fallbackdriverright.webp/common/f1/${py}/${team}/${code}/${py}${team}${code}right.webp`;
 }
 // 2023's logos on formula1.com are 96 px badges on a tile. Instead: the teams that carried on with the same logo get
 // their transparent 2024 one (with its white version); Alfa Romeo the team's wordmark (Wikimedia Commons, public domain);
