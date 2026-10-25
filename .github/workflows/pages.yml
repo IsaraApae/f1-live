@@ -41,6 +41,16 @@ jobs:
         run: |
           curl -fsSL --max-time 20 "$SITE/news.json" -o news.json || rm -f news.json
           node scripts/news.mjs news.json
+      # every circuit's pit lane, for the Live tab (OpenF1 doesn't answer free requests during a session): start from the live
+      # copy, add circuits that have had a new race since. The committed pitlanes.json stays if this fails.
+      - name: Update pit lanes
+        continue-on-error: true
+        timeout-minutes: 5
+        env:
+          SITE: ${{ steps.pages.outputs.base_url }}
+        run: |
+          curl -fsSL --max-time 20 "$SITE/pitlanes.json" -o live-pitlanes.json && node -e "JSON.parse(require('fs').readFileSync('live-pitlanes.json'))" && mv live-pitlanes.json pitlanes.json || rm -f live-pitlanes.json
+          node scripts/pitlanes.mjs pitlanes.json
       # a new cache name per commit, so installed apps pick up each release (scheduled runs of the same commit keep it)
       - name: Stamp the service worker
         run: |
