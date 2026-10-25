@@ -51,6 +51,12 @@ jobs:
         run: |
           curl -fsSL --max-time 20 "$SITE/pitlanes.json" -o live-pitlanes.json && node -e "JSON.parse(require('fs').readFileSync('live-pitlanes.json'))" && mv live-pitlanes.json pitlanes.json || rm -f live-pitlanes.json
           node scripts/pitlanes.mjs pitlanes.json
+      # the Esri key for satellite photos up close, from the repository's ESRI_KEY secret (a key limited to this site's address)
+      - name: Add the map key
+        env:
+          ESRI_KEY: ${{ secrets.ESRI_KEY }}
+        run: |
+          if [ -n "$ESRI_KEY" ]; then printf '// filled in by the publish\nexport const ESRI_KEY = "%s";\n' "$ESRI_KEY" > js/keys.js; fi
       # a new cache name per commit, so installed apps pick up each release (scheduled runs of the same commit keep it)
       - name: Stamp the service worker
         run: |

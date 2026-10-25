@@ -1350,7 +1350,8 @@ function animateCars(ts) {   // each car: a dot on the racing line, with its tag
     const cam = follow && cars[follow] ? follow : order.length ? order[0][0] : null;   // Heli, Road and Driver ride with the car you follow, else the leader
     for (const [n, c] of order) {
       const d = driver(n);
-      geo.moveCar(n, toGeo(c.x, c.y), { colour: colour(d), num: d.RacingNumber || n, tla: d.Tla || n, z: n === follow ? 300 : 200 - c.line, cam: n === cam });
+      const st = list((((S.TimingAppData || {}).Lines || {})[n] || {}).Stints), tyre = (TYRES[(st[st.length - 1] || {}).Compound] || [])[1];   // the tyres it's on
+      geo.moveCar(n, toGeo(c.x, c.y), { colour: colour(d), num: d.RacingNumber || n, tla: d.Tla || n, z: n === follow ? 300 : 200 - c.line, cam: n === cam, tyre });
       geo.setLook(n, c.look || "");
     }
     for (const n of geo.cars()) if (!cars[n]) geo.dropCar(n);
