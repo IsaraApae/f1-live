@@ -27,6 +27,7 @@
 .tcol { display: grid; gap: 12px; align-content: start; min-width: 0; }
 .panel .card-h { padding: 10px 14px; }
 .hd-tools { display: inline-flex; align-items: center; gap: 10px; }
+#p-map .hd-tools { flex-wrap: wrap; justify-content: flex-end; row-gap: 6px; }
 .hd-tools .btn[aria-pressed="true"] { background: var(--red); color: #fff; box-shadow: none; }
 @media (max-width: 1099px) {
   .tgrid { grid-template-columns: minmax(0, 1fr); }
@@ -96,6 +97,10 @@ small.u { color: var(--dim); font-size: 10px; }
 .gcar.fol { z-index: 400 !important; } .gcar.fol .gdot { transform: scale(1.35); } .gcar.fol .gtag { box-shadow: 0 0 0 2px var(--tc), 0 3px 10px rgba(0, 0, 0, .5); }
 .gcar.bat .gdot { border-color: var(--amber); }
 .gcar.pit .gtag, .gcar.pit .gdot { transform: scale(.75); } .gcar.pit .gstem { height: 3px; }
+/* riding with a car (Heli, Road, Driver): 3D cars instead of dots; the tags stay over them, but not the one you ride with up close */
+.riding .gdot, .riding .gstem { display: none; }
+.riding .gtag { transform: scale(.8); transform-origin: bottom center; }
+.riding.road .gcar.camcar, .riding.driver .gcar.camcar { visibility: hidden; }
 .maplibregl-ctrl-attrib { font-size: 10px; }
 .maplibregl-ctrl-attrib.maplibregl-compact:not(.maplibregl-compact-show) { opacity: .55; transform: scale(.85); transform-origin: bottom right; }   /* folded: a small ⓘ */
 @media (max-width: 1099px) { .gmap { height: clamp(340px, 60vh, 640px); } }
@@ -324,3 +329,4 @@ ol.feed > li:first-child { border-top: 0; }
   .bests > div { padding: 9px 7px; } .bests .dtag .n { display: none; } .bests p { font-size: 12px; }
   .tele-g b { font-size: 18px; }
 }
+.riding .gcar.away { visibility: hidden; }
