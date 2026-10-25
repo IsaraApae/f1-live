@@ -18,7 +18,8 @@ const RIDES = {
 };
 const FOV = 36.87;   // MapLibre's own (vertical, in degrees)
 
-const ROAD = 14, PIT_ROAD = 9, GRASS = 70;   // track, pit lane and the grass along them, wide in metres, for the views up close
+const ROAD = 14, PIT_ROAD = 12, GRASS = 70;   // track, pit lane and the grass along them, wide in metres, for the views up close
+const GARAGE = 11, BOX = 12;   // the garages: how deep and how wide each is (metres)
 // up close it's always a clean, bright day// up close it's always a clean, bright day (whatever the theme): pale ground, mint grass along the track, white buildings, blue sky
 const DAY = { ground: "#e7e8eb", water: "#a9d4f1", grass: "#c4e8b4", asphalt: "#474a51", buildings: "#f3f4f6" };
 const SKY = { "sky-color": "#79b6ea", "horizon-color": "#e4f0fa", "fog-color": "#eef2f6", "sky-horizon-blend": .55, "horizon-fog-blend": .5, "fog-ground-blend": .85 };
@@ -96,7 +97,7 @@ export async function createMap(el, { dark, onCar }) {
   const mini = document.createElement("div");
   mini.className = "minimap"; mini.hidden = true; mini.setAttribute("aria-hidden", "true");
   el.appendChild(mini);
-  const data = { trk: fc([]), pit: fc([]), flags: fc([]), bats: fc([]), corners: fc([]), kerbs: fc([]) };
+  const data = { trk: fc([]), pit: fc([]), flags: fc([]), bats: fc([]), corners: fc([]), kerbs: fc([]), pitlane: fc([]), pitbuild: fc([]) };
   let base = [];   // the base map's own layers (decorate)
   let mode = dark, bounds = null, bearing = 0, viewNow = "3d", blink = 0, trackPts = [], lat = 0;
   const riding = () => !!RIDES[viewNow];
@@ -106,11 +107,13 @@ export async function createMap(el, { dark, onCar }) {
   // which buildings count as near the track: until there is a track, all of them are "far"
   const NEAR = 120, TALL = 2.5;   // buildings drawn 2.5 times their real height, so the city stands out
   let trackLine = null;
+  let laneLine = null;   // the pit lane up close: the base map's buildings on it give way to ours (pitLane)
   function nearFilters() {
     if (!map.getLayer("b3d")) return;
     try {
-      map.setFilter("b3d", trackLine ? [">=", ["distance", trackLine], NEAR] : null);
-      map.setFilter("b3d-near", trackLine ? ["<", ["distance", trackLine], NEAR] : ["boolean", false]);
+      const off = riding() && laneLine ? [[">=", ["distance", laneLine], PIT_ROAD / 2 + GARAGE + 6]] : [];
+      map.setFilter("b3d", trackLine ? ["all", [">=", ["distance", trackLine], NEAR], ...off] : null);
+      map.setFilter("b3d-near", trackLine ? ["all", ["<", ["distance", trackLine], NEAR], ...off] : ["boolean", false]);
     } catch (e) { map.setFilter("b3d", null); }   // a MapLibre without "distance": every building as before
   }
   function decorate() {   // our layers on top of the base map (again after every change of style)
@@ -134,13 +137,19 @@ export async function createMap(el, { dark, onCar }) {
     // with white edges and red and white kerbs in the corners, and 3D cars (widths: roadWidths)
     const ride = { visibility: riding() ? "visible" : "none" }, round = { ...ride, "line-cap": "round", "line-join": "round" }, edge = ["==", ["get", "k"], "edge"];
     add({ id: "grass", type: "line", source: "trk", filter: edge, layout: round, paint: { "line-color": DAY.grass, "line-blur": 3 } });
-    add({ id: "road-pit", type: "line", source: "pit", layout: round, paint: { "line-color": DAY.asphalt } });
+    add({ id: "road-pit", type: "line", source: "pitlane", filter: ["==", ["get", "k"], "lane"], layout: round, paint: { "line-color": "#53565d" } });
+    add({ id: "pit-lines", type: "line", source: "pitlane", filter: ["==", ["get", "k"], "edge"], layout: { ...ride, "line-join": "round" }, paint: { "line-color": "#f4f4f6" } });
+    add({ id: "pit-div", type: "line", source: "pitlane", filter: ["==", ["get", "k"], "div"], layout: ride, paint: { "line-color": "#f4f4f6", "line-dasharray": [6, 6] } });
     add({ id: "road", type: "line", source: "trk", filter: edge, layout: round, paint: { "line-color": DAY.asphalt } });
     for (const side of [1, -1]) {
       add({ id: "kerb-w" + side, type: "line", source: "kerbs", layout: ride, paint: { "line-color": "#f2f2f4" } });
       add({ id: "kerb-r" + side, type: "line", source: "kerbs", layout: ride, paint: { "line-color": "#d3202a", "line-dasharray": [1, 1] } });
       add({ id: "road-edge" + side, type: "line", source: "trk", filter: edge, layout: { ...ride, "line-join": "round" }, paint: { "line-color": "#f4f4f6" } });
     }
+    // pit wall and garages (solid), the debris fence and the garage roofs (see-through, so cars inside still show)
+    for (const [id, ks, op] of [["pit-build", ["wall", "garage"], 1], ["pit-fence", ["fence"], .3], ["pit-roof", ["roof"], .45]])
+      add({ id, type: "fill-extrusion", source: "pitbuild", filter: ["in", ["get", "k"], ["literal", ks]], layout: ride,
+            paint: { "fill-extrusion-color": ["get", "c"], "fill-extrusion-base": ["get", "b"], "fill-extrusion-height": ["get", "h"], "fill-extrusion-opacity": op } });
     roadWidths();
     try { map.setSky(SKY); } catch (e) {}
     addCars();
@@ -162,6 +171,7 @@ export async function createMap(el, { dark, onCar }) {
   function roadWidths() {   // widths in metres (again for a new circuit: they depend on its latitude)
     const p = (id, k, v) => { try { if (map.getLayer(id)) map.setPaintProperty(id, k, v); } catch (e) {} };
     p("grass", "line-width", metres(GRASS)); p("road", "line-width", metres(ROAD)); p("road-pit", "line-width", metres(PIT_ROAD));
+    p("pit-lines", "line-width", metres(.25)); p("pit-div", "line-width", metres(.2));
     for (const side of [1, -1]) {
       p("road-edge" + side, "line-width", metres(.35)); p("road-edge" + side, "line-offset", metres(ROAD / 2 - .4, side));
       for (const k of ["kerb-w", "kerb-r"]) { p(k + side, "line-width", metres(1.2)); p(k + side, "line-offset", metres(ROAD / 2 + .6, side)); }
@@ -169,7 +179,7 @@ export async function createMap(el, { dark, onCar }) {
   }
   function showRide() {   // up close: the road and 3D cars; from afar: the coloured track and dots
     const on = riding(), vis = (id, show) => { try { if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", show ? "visible" : "none"); } catch (e) {} };   // (before the style loads: its style.load does it)
-    for (const id of ["grass", "road", "road-pit", "road-edge1", "road-edge-1", "kerb-w1", "kerb-w-1", "kerb-r1", "kerb-r-1", "cars3d"]) vis(id, on);
+    for (const id of ["grass", "road", "road-pit", "pit-lines", "pit-div", "pit-build", "pit-fence", "pit-roof", "road-edge1", "road-edge-1", "kerb-w1", "kerb-w-1", "kerb-r1", "kerb-r-1", "cars3d"]) vis(id, on);
     if (on) loadCars();
     // the clean look: of the base map only the ground and water, in daytime colours (from afar: the base map as it was)
     const paintOf = l => l.type === "background" ? "background-color" : "fill-color";
@@ -178,6 +188,7 @@ export async function createMap(el, { dark, onCar }) {
       else vis(l.id, l.shown && (!on || l.water));
     }
     mini.hidden = !on;
+    nearFilters();
     // buildings at their real height up close, and solid (from afar: taller, and the ones by the track see-through)
     const tall = on ? 1 : TALL, pp = (id, k, v) => { try { if (map.getLayer(id)) map.setPaintProperty(id, k, v); } catch (e) {} };
     for (const id of ["b3d", "b3d-near"]) { pp(id, "fill-extrusion-height", ["*", tall, ["coalesce", ["get", "render_height"], 8]]); pp(id, "fill-extrusion-base", ["*", tall, ["coalesce", ["get", "render_min_height"], 0]]); }
@@ -244,6 +255,7 @@ export async function createMap(el, { dark, onCar }) {
     const T = P.map((p, i) => { const a = P[(i - 2 + n) % n], b = P[(i + 2) % n], L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1; return [(b[0] - a[0]) / L, (b[1] - a[1]) / L]; });
     tm = { x0, y0, k, P, T };
     if (car3) car3.origin([x0, y0]);
+    pitLane();
     // kerbs where the track turns tighter than a 125 m radius, a little past each end
     const bend = P.map((p, i) => {
       const a = T[(i - 4 + n) % n], b = T[(i + 4) % n], q = P[(i - 4 + n) % n], r = P[(i + 4) % n];
@@ -258,6 +270,56 @@ export async function createMap(el, { dark, onCar }) {
       i = e;
     }
     set("kerbs", fc(kerbs));
+  }
+  // the pit lane up close, from the path a car drove through it: smoothed into the lane's middle, only the part away from the
+  // track; white edges and the line between the fast and working lanes; the pit wall and its fence on the track's side, and a row
+  // of garages (back wall, a divider every BOX metres, a roof) on the other
+  let pitPts = [];
+  const fromM = ([x, y]) => [tm.x0 + x / (M * tm.k), tm.y0 + y / M];
+  function pitLane() {
+    laneLine = null; set("pitlane", fc([])); set("pitbuild", fc([]));
+    if (!tm || pitPts.length < 5) return;
+    let P = pitPts.map(toM);
+    const R = []; let d = 0;   // every 2 m along it (d: how far into the next piece the next point is)
+    for (let i = 1; i < P.length; i++) {
+      const [a, b] = [P[i - 1], P[i]], L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      for (; d < L; d += 2) R.push([a[0] + (b[0] - a[0]) * d / L, a[1] + (b[1] - a[1]) * d / L]);
+      d -= L;
+    }
+    if (R.length < 20) return;
+    for (let pass = 0; pass < 2; pass++)   // smooth over about 40 m: the drive into and out of a box straightens into the lane
+      P = R.map((_, i) => { let x = 0, y = 0, n = 0; for (let j = Math.max(0, i - 10); j <= Math.min(R.length - 1, i + 10); j++) { x += R[j][0]; y += R[j][1]; n++; } return [x / n, y / n]; }), R.splice(0, R.length, ...P);
+    // which way the track is, and how far: the lane proper is where it's at least 12 m off the track
+    const near = P.map(p => { let best = Infinity, at = null; for (const q of tm.P) { const d = (q[0] - p[0]) ** 2 + (q[1] - p[1]) ** 2; if (d < best) { best = d; at = q; } } return [Math.sqrt(best), at]; });
+    let run = [0, -1];
+    for (let i = 0, start = -1; i <= P.length; i++) {
+      const ok = i < P.length && near[i][0] > 12;
+      if (ok && start < 0) start = i;
+      if (!ok && start >= 0) { if (i - start > run[1] - run[0]) run = [start, i]; start = -1; }
+    }
+    if (run[1] - run[0] < 15) return;
+    const lane = P.slice(run[0], run[1]), nl = near.slice(run[0], run[1]);
+    const tan = lane.map((p, i) => { const a = lane[Math.max(0, i - 2)], b = lane[Math.min(lane.length - 1, i + 2)], L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1; return [(b[0] - a[0]) / L, (b[1] - a[1]) / L]; });
+    const left = tan.map(([x, y]) => [-y, x]);
+    let side = 0; lane.forEach((p, i) => { const q = nl[i][1]; side += Math.sign((q[0] - p[0]) * left[i][0] + (q[1] - p[1]) * left[i][1]); });
+    const wall = side >= 0 ? 1 : -1, W = PIT_ROAD / 2;   // wall: the track's side (1: to the left of the way cars go)
+    const at = (i, off, fwd = 0) => fromM([lane[i][0] + left[i][0] * off + tan[i][0] * fwd, lane[i][1] + left[i][1] * off + tan[i][1] * fwd]);
+    const offLine = off => lane.map((_, i) => at(i, off));
+    set("pitlane", fc([line(lane.map(fromM), { k: "lane" }), line(offLine(W - .3), { k: "edge" }), line(offLine(-W + .3), { k: "edge" }), line(offLine(-wall), { k: "div" })]));
+    laneLine = { type: "LineString", coordinates: lane.filter((_, i) => i % 3 === 0).map(fromM) };
+    const quad = (i, j, o1, o2, props, f1 = 0, f2 = 0) => ({ type: "Feature", properties: props, geometry: { type: "Polygon", coordinates: [[at(i, o1, f1), at(j, o1, f2), at(j, o2, f2), at(i, o2, f1), at(i, o1, f1)]] } });
+    const feats = [];
+    for (let i = 0; i + 2 < lane.length; i += 2) {
+      const j = i + 2;
+      feats.push(quad(i, j, wall * (W + .8), wall * (W + 1.4), { k: "wall", b: 0, h: 1.1, c: "#d6d7dc" }));
+      feats.push(quad(i, j, wall * (W + 1.05), wall * (W + 1.15), { k: "fence", b: 1.1, h: 3.8, c: "#3a3d44" }));
+      feats.push(quad(i, j, -wall * (W + 2 + GARAGE), -wall * (W + 2.4 + GARAGE), { k: "garage", b: 0, h: 7, c: "#f1f2f4" }));
+      feats.push(quad(i, j, -wall * (W + 1.6), -wall * (W + 2.4 + GARAGE), { k: "roof", b: 6.4, h: 7, c: "#e9eaee" }));
+    }
+    for (let i = 0; i < lane.length; i += BOX / 2)   // a divider between garages every BOX metres (samples are 2 m apart)
+      feats.push(quad(i, i, -wall * (W + 2), -wall * (W + 2 + GARAGE), { k: "garage", b: 0, h: 6.4, c: "#e2e3e8" }, -.15, .15));
+    set("pitbuild", fc(feats));
+    nearFilters();
   }
   function heading(c) {   // which way a car points: the way the track runs where it is (or, off the track, the way it's moving), smoothed
     let hx = c.mx, hy = c.my;
@@ -387,7 +449,7 @@ export async function createMap(el, { dark, onCar }) {
       bounds = nb; bearing = rotation || 0;
       if (moved) camera(false);
     },
-    setPit(pts) { set("pit", fc(pts && pts.length > 1 ? [line(pts)] : [])); },
+    setPit(pts) { pitPts = pts || []; set("pit", fc(pitPts.length > 1 ? [line(pitPts)] : [])); pitLane(); },
     setFlags(list) { set("flags", fc(list.map(f => line(f.pts, { k: f.k })))); if (!list.length && map.getLayer("flags")) map.setPaintProperty("flags", "line-opacity", 0.9); },
     setBattles(pairs) { set("bats", fc(pairs.map(p => line(p)))); },
     moveCar, dropCar, setLook,
