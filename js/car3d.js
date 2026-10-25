@@ -8,13 +8,13 @@ const ROOM = "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/environmen
 
 export async function carLayer(ml) {
   const [T, { RoomEnvironment }] = await Promise.all([import(THREE), import(ROOM)]);
-  const o = new T.Object3D(), parts = {};   // parts[material, "+" if seen from the driver's seat]: shapes, placed
-  const keep = (g, mat, front) => {
+  const o = new T.Object3D(), parts = {};   // parts[material]: shapes, placed
+  const keep = (g, mat) => {
     if (!g.attributes.normal) g.computeVertexNormals();
-    g = g.index ? g.toNonIndexed() : g; o.updateMatrix(); g.applyMatrix4(o.matrix); (parts[mat + (front ? "+" : "")] ||= []).push(g);
+    g = g.index ? g.toNonIndexed() : g; o.updateMatrix(); g.applyMatrix4(o.matrix); (parts[mat] ||= []).push(g);
   };
-  const put = (g, mat, front, [x, y, z] = [0, 0, 0], [rx, ry, rz] = [0, 0, 0], [sx, sy, sz] = [1, 1, 1]) => {
-    o.position.set(x, y, z); o.rotation.set(rx, ry, rz); o.scale.set(sx, sy, sz); keep(g, mat, front);
+  const put = (g, mat, [x, y, z] = [0, 0, 0], [rx, ry, rz] = [0, 0, 0], [sx, sy, sz] = [1, 1, 1]) => {
+    o.position.set(x, y, z); o.rotation.set(rx, ry, rz); o.scale.set(sx, sy, sz); keep(g, mat);
   };
   const both = f => { f(1); f(-1); };   // each side
   const box = (w, h, d) => new T.BoxGeometry(w, h, d);
@@ -48,44 +48,46 @@ export async function carLayer(ml) {
     const g = new T.BufferGeometry(); g.setAttribute("position", new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g;
   };
   const tube = (pts, r, n) => new T.TubeGeometry(new T.CatmullRomCurve3(pts.map(p => new T.Vector3(...p))), n, r, 8);
-  const rod = (mat, front, a, b, r = .016) => {   // a thin bar from a to b (wishbones)
+  const rod = (mat, a, b, r = .016) => {   // a thin bar from a to b (wishbones)
     const A = new T.Vector3(...a), B = new T.Vector3(...b), d = B.clone().sub(A);
     o.position.copy(A).add(B).multiplyScalar(.5); o.scale.set(1, 1, 1); o.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), d.clone().normalize());
-    keep(new T.CylinderGeometry(r, r, d.length(), 6), mat, front);
+    keep(new T.CylinderGeometry(r, r, d.length(), 6), mat);
   };
   const across = Math.PI / 2;
 
   // the body: nose, chassis, cockpit, engine cover tapering to the back (painted), and the spine up to the airbox
   put(loft([[-2.3, .05, .3, .42, 2.5], [-2.05, .1, .24, .52, 2.6], [-1.6, .18, .18, .62, 2.8], [-1, .27, .13, .73, 3], [-.4, .36, .1, .8, 3.2],
             [-.05, .41, .1, .74, 3.4], [.3, .4, .1, .63, 3.6], [.75, .31, .11, .61, 3.2], [1.2, .23, .13, .55, 3], [1.7, .16, .15, .45, 2.8],
-            [2.2, .11, .17, .37, 2.5], [2.62, .06, .2, .29, 2.4]]), "team", true);
-  put(loft([[-1.9, .03, .6, .66, 2.4], [-1.3, .08, .66, .84, 2.6], [-.7, .13, .7, .97, 2.8], [-.25, .15, .7, 1.04, 3], [.04, .14, .7, .99, 3]]), "team", false);
+            [2.2, .11, .17, .37, 2.5], [2.62, .06, .2, .29, 2.4]]), "team");
+  put(loft([[-1.9, .03, .6, .66, 2.4], [-1.3, .08, .66, .84, 2.6], [-.7, .13, .7, .97, 2.8], [-.25, .15, .7, 1.04, 3], [.04, .14, .7, .99, 3]]), "spine");
   for (const s of [1, -1])   // sidepods: an inlet at the front, undercut, tapering in to the back
-    put(loft([[-1.55, .06, .17, .27, 2.4, s * .3], [-.95, .15, .13, .38, 3, s * .38], [-.3, .2, .12, .47, 3.4, s * .46], [.3, .21, .14, .52, 3.6, s * .53], [.62, .19, .17, .5, 3.6, s * .56]]), "team", false);
-  for (const s of [1, -1]) put(box(.02, .26, .3), "carbon", false, [.635, .34, s * .56]);   // the inlets' dark mouths
-  put(new T.CylinderGeometry(.21, .21, .02, 24), "carbon", false, [.1, .615, 0], [0, 0, 0], [1.75, 1, 1.05]);   // cockpit opening
-  put(new T.SphereGeometry(.13, 22, 16), "helmet", false, [.02, .75, 0]);
-  put(new T.SphereGeometry(.132, 22, 16, Math.PI - .9, 1.8, 1.05, .5), "visor", false, [.02, .75, 0]);   // the visor: a band round the front
-  put(box(.03, .1, .14), "carbon", false, [.045, .9, 0]);                                    // airbox intake
-  put(box(.1, .035, .24), "carbon", false, [-.25, 1.055, 0]);                                // T-camera
-  put(slab([[-.5, .9], [-1.9, .64], [-1.9, .9], [-.9, 1]], .012, .004), "team", false);      // fin
-  put(tube([[-.08, .62, -.26], [-.04, .79, -.25], [.3, .82, -.16], [.47, .8, 0], [.3, .82, .16], [-.04, .79, .25], [-.08, .62, .26]], .028, 48), "carbon", false);   // halo (from the driver's seat: drawn over the view, geomap.js)
-  put(tube([[.47, .8, 0], [.63, .72, 0], [.8, .55, 0]], .03, 12), "carbon", false);
-  both(s => { put(new T.SphereGeometry(.07, 14, 10), "team", true, [.56, .68, s * .5], [0, 0, 0], [.7, .6, 1.3]); rod("carbon", true, [.5, .6, s * .3], [.56, .66, s * .45], .012); });   // mirrors
+    put(loft([[-1.55, .06, .17, .27, 2.4, s * .3], [-.95, .15, .13, .38, 3, s * .38], [-.3, .2, .12, .47, 3.4, s * .46], [.3, .21, .14, .52, 3.6, s * .53], [.62, .19, .17, .5, 3.6, s * .56]]), "team");
+  for (const s of [1, -1]) put(box(.02, .26, .3), "carbon", [.635, .34, s * .56]);   // the inlets' dark mouths
+  put(new T.CylinderGeometry(.21, .21, .02, 24), "carbon", [.1, .615, 0], [0, 0, 0], [1.75, 1, 1.05]);   // cockpit opening
+  put(new T.SphereGeometry(.13, 22, 16), "helmet", [.02, .75, 0]);
+  put(new T.SphereGeometry(.132, 22, 16, Math.PI - .9, 1.8, 1.05, .5), "visor", [.02, .75, 0]);   // the visor: a band round the front
+  put(box(.03, .1, .14), "cam", [.045, .9, 0]);                                    // airbox intake
+  put(box(.1, .035, .24), "cam", [-.25, 1.055, 0]);                                // T-camera
+  put(slab([[-.5, .9], [-1.9, .64], [-1.9, .9], [-.9, 1]], .012, .004), "spine");      // fin
+  put(tube([[-.08, .62, -.26], [-.04, .79, -.25], [.3, .82, -.16], [.47, .8, 0], [.3, .82, .16], [-.04, .79, .25], [-.08, .62, .26]], .03, 48), "team");   // halo
+  put(tube([[.47, .8, 0], [.63, .72, 0], [.8, .55, 0]], .034, 12), "team");
+  put(box(.05, .15, .28), "carbon", [.45, .6, 0], [0, 0, .5]);                          // steering wheel
+  put(box(.012, .05, .09), "screen", [.475, .62, 0], [0, 0, .5]);                     // its display
+  both(s => { put(new T.SphereGeometry(.07, 14, 10), "team", [.56, .68, s * .5], [0, 0, 0], [.7, .6, 1.3]); rod("carbon", [.5, .6, s * .3], [.56, .66, s * .45], .012); });   // mirrors
   // floor: wide under the sidepods, narrower at each end
-  put(slab([[1.25, -.42], [.75, -.8], [-1.3, -.8], [-1.95, -.55], [-1.95, .55], [-1.3, .8], [.75, .8], [1.25, .42]], .03, .01), "carbon", false, [0, .07, 0], [across, 0, 0]);
-  put(box(.55, .02, 1), "carbon", false, [-2.12, .19, 0], [0, 0, -.35]);                    // diffuser
+  put(slab([[1.25, -.42], [.75, -.8], [-1.3, -.8], [-1.95, -.55], [-1.95, .55], [-1.3, .8], [.75, .8], [1.25, .42]], .03, .01), "carbon", [0, .07, 0], [across, 0, 0]);
+  put(box(.55, .02, 1), "carbon", [-2.12, .19, 0], [0, 0, -.35]);                    // diffuser
   // front wing: a main plane and three flaps rising towards the back, endplates, all across the car
-  put(wing(.34, 1.86, .09, .05), "carbon", true, [2.78, .07, 0]);
-  [[2.5, .12, .2, .25], [2.34, .17, .16, .45], [2.22, .22, .13, .65]].forEach(([x, y, c, a]) => put(wing(c, 1.7, .1, .1), "team", true, [x, y, 0], [0, 0, -a]));
-  both(s => put(slab([[2.8, .03], [2.8, .2], [2.6, .3], [2.15, .3], [2.15, .12]], .018, .006), "team", true, [0, 0, s * .95]));
+  put(wing(.34, 1.86, .09, .05), "carbon", [2.78, .07, 0]);
+  [[2.5, .12, .2, .25], [2.34, .17, .16, .45], [2.22, .22, .13, .65]].forEach(([x, y, c, a]) => put(wing(c, 1.7, .1, .1), "team", [x, y, 0], [0, 0, -a]));
+  both(s => put(slab([[2.8, .03], [2.8, .2], [2.6, .3], [2.15, .3], [2.15, .12]], .018, .006), "team", [0, 0, s * .95]));
   // rear wing: main plane and flap (the DRS gap between them), curved endplates, beam wing and pillar
-  put(wing(.34, 1, .11, .12), "carbon", false, [-2.42, .8, 0]);
-  put(wing(.2, 1, .1, .1), "team", false, [-2.66, .9, 0], [0, 0, -.55]);
-  both(s => put(slab([[-2.3, .4], [-2.3, .96], [-2.45, 1.02], [-2.85, 1.02], [-2.85, .5], [-2.6, .4]], .02, .008), "team", false, [0, 0, s * .51]));
-  put(wing(.22, .86, .1, .1), "carbon", false, [-2.36, .3, 0]);
-  put(box(.1, .45, .025), "carbon", false, [-2.52, .58, 0]);
-  put(box(.03, .07, .1), "light", false, [-2.78, .34, 0]);                                   // rain light
+  put(wing(.34, 1, .11, .12), "carbon", [-2.42, .8, 0]);
+  put(wing(.2, 1, .1, .1), "team", [-2.66, .9, 0], [0, 0, -.55]);
+  both(s => put(slab([[-2.3, .4], [-2.3, .96], [-2.45, 1.02], [-2.85, 1.02], [-2.85, .5], [-2.6, .4]], .02, .008), "team", [0, 0, s * .51]));
+  put(wing(.22, .86, .1, .1), "carbon", [-2.36, .3, 0]);
+  put(box(.1, .45, .025), "carbon", [-2.52, .58, 0]);
+  put(box(.03, .07, .1), "light", [-2.78, .34, 0]);                                   // rain light
   // wheels: tyres with rounded shoulders, rims, hubs; the wheel covers' sidewall ring shows the compound (its own material)
   const tyre = w => {   // sidewall in from the rim, the rounded tread, the other sidewall
     const p = [new T.Vector2(.22, -w / 2)];
@@ -93,17 +95,17 @@ export async function carLayer(ml) {
     p.push(new T.Vector2(.22, w / 2)); return new T.LatheGeometry(p, 36);
   };
   for (const [x, w, z] of [[1.72, .3, .78], [-1.68, .4, .74]]) both(s => {
-    put(tyre(w), "tyre", x > 0, [x, .36, s * z], [across, 0, 0]);
-    put(new T.CylinderGeometry(.25, .25, w - .02, 24), "rim", x > 0, [x, .36, s * z], [across, 0, 0]);
-    put(new T.CylinderGeometry(.06, .06, w + .02, 12), "carbon", x > 0, [x, .36, s * z], [across, 0, 0]);
-    put(new T.TorusGeometry(.29, .012, 6, 40), "ring", x > 0, [x, .36, s * (z + w / 2 + .005)]);
-    put(new T.CylinderGeometry(.13, .15, .2, 14), "carbon", x > 0, [x, .36, s * (z - w / 2 - .1)], [across, 0, 0]);   // brake duct
+    put(tyre(w), "tyre", [x, .36, s * z], [across, 0, 0]);
+    put(new T.CylinderGeometry(.25, .25, w - .02, 24), "rim", [x, .36, s * z], [across, 0, 0]);
+    put(new T.CylinderGeometry(.06, .06, w + .02, 12), "carbon", [x, .36, s * z], [across, 0, 0]);
+    put(new T.TorusGeometry(.29, .012, 6, 40), "ring", [x, .36, s * (z + w / 2 + .005)]);
+    put(new T.CylinderGeometry(.13, .15, .2, 14), "carbon", [x, .36, s * (z - w / 2 - .1)], [across, 0, 0]);   // brake duct
   });
   both(s => {   // suspension
     for (const [a, b] of [[[1.6, .44, .25], [1.72, .42, .62]], [[1.85, .44, .25], [1.72, .42, .62]], [[1.55, .2, .2], [1.72, .28, .62]], [[1.9, .2, .2], [1.72, .28, .62]], [[1.72, .3, .58], [1.62, .5, .2]]])
-      rod("carbon", true, [a[0], a[1], s * a[2]], [b[0], b[1], s * b[2]]);
+      rod("carbon", [a[0], a[1], s * a[2]], [b[0], b[1], s * b[2]]);
     for (const [a, b] of [[[-1.5, .45, .3], [-1.68, .42, .52]], [[-1.85, .45, .3], [-1.68, .42, .52]], [[-1.5, .22, .3], [-1.68, .3, .52]], [[-1.85, .22, .3], [-1.68, .3, .52]]])
-      rod("carbon", false, [a[0], a[1], s * a[2]], [b[0], b[1], s * b[2]]);
+      rod("carbon", [a[0], a[1], s * a[2]], [b[0], b[1], s * b[2]]);
   });
   const merged = Object.fromEntries(Object.entries(parts).map(([k, list]) => {   // one shape per material: positions and normals
     const n = list.reduce((s, g) => s + g.attributes.position.count * 3, 0), pos = new Float32Array(n), nor = new Float32Array(n);
@@ -119,6 +121,8 @@ export async function carLayer(ml) {
     rim: new T.MeshStandardMaterial({ color: 0x2a2b30, roughness: .3, metalness: .9 }),
     helmet: new T.MeshPhysicalMaterial({ color: 0xf4f4f7, roughness: .2, clearcoat: 1 }),
     visor: new T.MeshStandardMaterial({ color: 0x0c0d10, roughness: .05, metalness: .9 }),
+    screen: new T.MeshBasicMaterial({ color: 0x3fd0ff }),
+    get cam() { return this.carbon; },
     light: new T.MeshBasicMaterial({ color: 0xff2030 }),
     shadow: new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: .42, depthWrite: false })
   };
@@ -139,19 +143,19 @@ export async function carLayer(ml) {
   function car(n, d) {
     let c = cars.get(n);
     if (!c) {
-      c = { g: new T.Group(), rest: [], key: "" };
+      c = { g: new T.Group(), driver: [], key: "" };
       for (const [k, g] of Object.entries(merged)) {
-        const m = new T.Mesh(g, mats[k.replace("+", "")]); m.userData.k = k.replace("+", "");
-        c.g.add(m); if (!k.endsWith("+")) c.rest.push(m);
+        const m = new T.Mesh(g, mats[k]); m.userData.k = k;
+        c.g.add(m); if (["helmet", "visor", "spine", "cam"].includes(k)) c.driver.push(m);   // (what's behind the camera riding with it)
       }
-      c.plates = [1, -1].map(s => { const p = new T.Mesh(plate); p.position.set(-1, .52, s * .278); p.rotation.y = s > 0 ? 0 : Math.PI; c.g.add(p); c.rest.push(p); return p; });
+      c.plates = [1, -1].map(s => { const p = new T.Mesh(plate); p.position.set(-1, .52, s * .278); p.rotation.y = s > 0 ? 0 : Math.PI; c.g.add(p); return p; });
       const sh = new T.Mesh(shadow, mats.shadow); sh.position.y = .012; sh.renderOrder = -1; c.g.add(sh);
       scene.add(c.g); cars.set(n, c);
     }
     const key = [d.colour, d.ink, d.num, d.tyre].join();
     if (c.key !== key) {
       c.key = key;
-      for (const m of c.g.children) if (m.userData.k === "team") m.material = paint(d.colour); else if (m.userData.k === "ring") m.material = ring(d.tyre);
+      for (const m of c.g.children) if (m.userData.k === "team" || m.userData.k === "spine") m.material = paint(d.colour); else if (m.userData.k === "ring") m.material = ring(d.tyre);
       for (const p of c.plates) p.material = number(d.num, d.ink);
     }
     return c;
@@ -180,14 +184,14 @@ export async function carLayer(ml) {
       origin = new T.Matrix4().makeTranslation(mc.x, mc.y, mc.z).scale(new T.Vector3(s, -s, s)).multiply(new T.Matrix4().makeRotationX(Math.PI / 2));
     },
     // the cars to draw now, each { n, at ([lng, lat]), angle (its heading, anticlockwise from east), colour, ink (text
-    // on that colour), num, tyre (its compound's colour), own }; own: you're in its seat, so only what you'd see from there
+    // on that colour), num, tyre (its compound's colour), own }; own: the camera rides just behind its driver's head, so the driver, airbox and spine aren't drawn
     show(list) {
       const on = new Set();
       for (const d of list) {
         const c = car(d.n, d); on.add(d.n);
         const mc = ml.MercatorCoordinate.fromLngLat(d.at, 0);   // through MapLibre's own projection, so cars sit exactly where the camera and tags put them
         c.g.position.set((mc.x - at0.x) / per, 0, (mc.y - at0.y) / per); c.g.rotation.y = d.angle; c.g.visible = true;
-        for (const m of c.rest) m.visible = !d.own;
+        for (const m of c.driver) m.visible = !d.own;
       }
       for (const [n, c] of cars) if (!on.has(n)) c.g.visible = false;
     }

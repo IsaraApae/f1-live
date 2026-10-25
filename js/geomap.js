@@ -4,7 +4,6 @@
 // within 1.3° and 11 m), so placing a circuit only takes matching its outline to the real one, from an open dataset of
 // circuit shapes (github.com/bacinger/f1-circuits, MIT licence).
 import { esc, ink } from "./util.js";
-import { ESRI_KEY } from "./keys.js";
 
 const LIB = "https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/";
 const SHAPES = "https://cdn.jsdelivr.net/gh/bacinger/f1-circuits@8094e957b8d6aa8b9f4510c93968556cccd30e02/f1-circuits.geojson";
@@ -13,44 +12,16 @@ const SECTOR_COLOURS = ["#ff3b5c", "#3b9eff", "#ffd60a"];
 // the camera views that ride with a car (the one you follow, else the leader): where the camera is and what it looks at,
 // in metres along the car's way (fwd) and to its left, and its height
 const RIDES = {
-  heli: { from: [-38, -16, 26], to: [18, 0, 0] },                // a helicopter above, behind and to one side
-  road: { from: [-8, 0, 2.2], to: [14, 0, 0], fov: 50 },            // just behind the car, as on TV
-  driver: { from: [0.05, 0, 0.72], to: [7.9, 0, 0], fov: 72 }    // the driver's eyes, inside the halo, with a wide lens like the onboard camera's
-};                                                                // (MapLibre tilts at most 85°)
+  heli: { from: [-42, -14, 36], to: [22, 0, 0] },               // a helicopter high above and behind
+  road: { from: [-7, 0, 3.2], to: [6, 0, 0], fov: 42 },         // above and behind, looking down on the car (a chase camera)
+  driver: { from: [-.75, 0, 1.2], to: [9, 0, 0], fov: 62 }      // just behind the driver's head: your cockpit, halo and steering wheel
+};
 const FOV = 36.87;   // MapLibre's own (vertical, in degrees)
 
 const ROAD = 14, PIT_ROAD = 9, GRASS = 70;   // track, pit lane and the grass along them, wide in metres, for the views up close
-// an F1 car from boxes (MapLibre can only stand flat shapes up), in metres from its middle, x forward and y to the left:
-// [footprint, from height, to height, colour (T: the team's, K: carbon, W: tyre, R: rim, H: helmet), o: seen from the driver's seat]
-const box = (x0, x1, y0, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
-const taper = (x0, x1, w0, w1) => [[x0, -w0], [x1, -w1], [x1, w1], [x0, w0]];   // half as wide as w0 at x0, w1 at x1
-const pair = (x0, x1, y0, y1, ...rest) => [[box(x0, x1, y0, y1), ...rest], [box(x0, x1, -y1, -y0), ...rest]];   // both sides
-const wheel = (x, y0, y1, o) => [   // a tyre, rounded off top and bottom, with its rim on the outside
-  ...pair(x - .22, x + .22, y0, y1, 0, .1, "W", o), ...pair(x - .36, x + .36, y0, y1, .1, .62, "W", o), ...pair(x - .22, x + .22, y0, y1, .62, .72, "W", o),
-  ...pair(x - .2, x + .2, y1, y1 + .015, .17, .55, "R", o)];
-const CAR = [
-  [box(-1.9, 1.25, -.8, .8), .03, .09, "K"],                                               // floor
-  [taper(1.2, 1.9, .2, .16), .2, .48, "T", "o"], [taper(1.9, 2.55, .16, .09), .18, .36, "T", "o"],   // nose
-  [taper(-.2, 1.2, .4, .24), .1, .62, "T"],                                                // chassis
-  [box(-.05, .3, -.13, .13), .58, .84, "H"],                                               // the driver's helmet
-  ...pair(-.08, .42, .21, .27, .74, .82, "K"), [box(.36, .44, -.27, .27), .74, .82, "K"],   // halo
-  [box(.44, .72, -.035, .035), .55, .8, "K"], ...pair(-.12, 0, .21, .27, .6, .78, "K"),
-  [box(-.9, .65, -.8, .8), .1, .5, "T"], [taper(-1.6, -.9, .45, .8), .1, .44, "T"],         // sidepods
-  [taper(-2, -.1, .16, .3), .44, .86, "T"], [box(-.32, .02, -.15, .15), .8, 1, "T"],        // engine cover, airbox
-  [box(-1.95, -.5, -.02, .02), .84, .96, "T"],                                             // fin
-  [box(-2.45, -1.9, -.55, .55), .05, .26, "K"],                                            // diffuser
-  [box(-2.78, -2.5, -.5, .5), .78, .86, "K"], [box(-2.62, -2.42, -.5, .5), .87, .95, "T"],   // rear wing
-  ...pair(-2.82, -2.35, .48, .53, .38, .98, "T"), [box(-2.62, -2.42, -.42, .42), .3, .36, "K"], [box(-2.58, -2.48, -.03, .03), .36, .8, "K"],
-  [box(2.4, 2.78, -.95, .95), .05, .1, "K", "o"], [box(2.22, 2.48, -.9, .9), .1, .17, "T", "o"],   // front wing
-  ...pair(2.2, 2.78, .92, .97, .05, .3, "T", "o"),
-  ...pair(.42, .58, .38, .55, .6, .68, "K", "o"),                                          // mirrors
-  ...pair(1.62, 1.9, .2, .66, .3, .35, "K", "o"), ...pair(-1.78, -1.52, .3, .58, .34, .39, "K"),   // suspension
-  ...wheel(1.75, .62, .92, "o"), ...wheel(-1.65, .55, .95)
-];
-const PARTS = { K: "#17181c", W: "#0b0b0d", R: "#55575e", H: "#ececf0" };
-// the sky and the haze far off, up close
-const SKY = dark => dark ? { "sky-color": "#101a33", "horizon-color": "#2c3b5a", "fog-color": "#1b2233", "sky-horizon-blend": .6, "horizon-fog-blend": .6, "fog-ground-blend": .8 }
-                         : { "sky-color": "#6fa6e0", "horizon-color": "#d7e7f4", "fog-color": "#e3ebf1", "sky-horizon-blend": .6, "horizon-fog-blend": .6, "fog-ground-blend": .8 };
+// up close it's always a clean, bright day// up close it's always a clean, bright day (whatever the theme): pale ground, mint grass along the track, white buildings, blue sky
+const DAY = { ground: "#e7e8eb", water: "#a9d4f1", grass: "#c4e8b4", asphalt: "#474a51", buildings: "#f3f4f6" };
+const SKY = { "sky-color": "#79b6ea", "horizon-color": "#e4f0fa", "fog-color": "#eef2f6", "sky-horizon-blend": .55, "horizon-fog-blend": .5, "fog-ground-blend": .85 };
 
 export const supported = () => { try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch (e) { return false; } };
 
@@ -121,14 +92,12 @@ export async function createMap(el, { dark, onCar }) {
                            maxPitch: 85, maxZoom: 24, fadeDuration: 0, cooperativeGestures: false });
   map.touchZoomRotate.enableRotation();
   el._map = map;   // handy from the browser console
-  // from the driver's seat: the halo in front of your eyes, out of focus, as on the onboard camera (it moves with your head, so it's
-  // drawn over the view; under the cars' tags)
-  const halo = document.createElement("div");
-  halo.className = "halo";
-  halo.innerHTML = `<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0H100V8Q50 21 0 8Z"/><path d="M46.5 13.5Q50 14.6 53.5 13.5L55.5 58Q50 61 44.5 58Z"/>
-    <path d="M0 8Q7 34 2.5 100H0Z"/><path d="M100 8Q93 34 97.5 100H100Z"/><path d="M0 92Q50 80 100 92V100H0Z" opacity=".85"/></svg>`;
-  map.getCanvasContainer().appendChild(halo);
-  const data = { trk: fc([]), pit: fc([]), flags: fc([]), bats: fc([]), corners: fc([]), car3d: fc([]), kerbs: fc([]) };
+  // up close: a mini-map of the circuit in the corner, every car on it and the one the camera rides with ringed (ride())
+  const mini = document.createElement("div");
+  mini.className = "minimap"; mini.hidden = true; mini.setAttribute("aria-hidden", "true");
+  el.appendChild(mini);
+  const data = { trk: fc([]), pit: fc([]), flags: fc([]), bats: fc([]), corners: fc([]), kerbs: fc([]) };
+  let base = [];   // the base map's own layers (decorate)
   let mode = dark, bounds = null, bearing = 0, viewNow = "3d", blink = 0, trackPts = [], lat = 0;
   const riding = () => !!RIDES[viewNow];
   // a width in metres as a line width at any zoom (MapLibre's 512-pixel tiles: 78271.5 m a pixel at zoom 0, at the equator)
@@ -147,6 +116,8 @@ export async function createMap(el, { dark, onCar }) {
   function decorate() {   // our layers on top of the base map (again after every change of style)
     const layers = map.getStyle().layers;
     for (const l of layers) if (/^poi|^airport|housenumber/.test(l.id)) map.removeLayer(l.id);   // fewer labels over the track
+    base = map.getStyle().layers.map(l => ({ id: l.id, type: l.type, shown: (l.layout || {}).visibility !== "none", water: /water/.test(l.id) || l["source-layer"] === "water",
+                                             colour: (l.paint || {})[l.type === "background" ? "background-color" : "fill-color"] }));
     // one layer that fails (an old browser) mustn't stop the rest
     const add = (l, before) => { try { if (!map.getLayer(l.id)) map.addLayer(l, before); } catch (e) { console.warn(e); } };
     const firstLabel = (map.getStyle().layers.find(l => l.type === "symbol") || {}).id;
@@ -162,24 +133,16 @@ export async function createMap(el, { dark, onCar }) {
     // up close (the views that ride with a car): grass along the track, the track and pit lane as roads at their real width
     // with white edges and red and white kerbs in the corners, and 3D cars (widths: roadWidths)
     const ride = { visibility: riding() ? "visible" : "none" }, round = { ...ride, "line-cap": "round", "line-join": "round" }, edge = ["==", ["get", "k"], "edge"];
-    add({ id: "grass", type: "line", source: "trk", filter: edge, layout: round, paint: { "line-color": mode ? "#1e3320" : "#7fa565", "line-blur": 6 } });
-    add({ id: "road-pit", type: "line", source: "pit", layout: round, paint: { "line-color": mode ? "#303238" : "#5c5f66" } });
-    add({ id: "road", type: "line", source: "trk", filter: edge, layout: round, paint: { "line-color": mode ? "#303238" : "#5c5f66" } });
+    add({ id: "grass", type: "line", source: "trk", filter: edge, layout: round, paint: { "line-color": DAY.grass, "line-blur": 3 } });
+    add({ id: "road-pit", type: "line", source: "pit", layout: round, paint: { "line-color": DAY.asphalt } });
+    add({ id: "road", type: "line", source: "trk", filter: edge, layout: round, paint: { "line-color": DAY.asphalt } });
     for (const side of [1, -1]) {
       add({ id: "kerb-w" + side, type: "line", source: "kerbs", layout: ride, paint: { "line-color": "#f2f2f4" } });
       add({ id: "kerb-r" + side, type: "line", source: "kerbs", layout: ride, paint: { "line-color": "#d3202a", "line-dasharray": [1, 1] } });
       add({ id: "road-edge" + side, type: "line", source: "trk", filter: edge, layout: { ...ride, "line-join": "round" }, paint: { "line-color": "#f4f4f6" } });
     }
-    add({ id: "car3d", type: "fill-extrusion", source: "car3d", layout: ride,
-          paint: { "fill-extrusion-color": ["get", "c"], "fill-extrusion-base": ["get", "b"], "fill-extrusion-height": ["get", "h"], "fill-extrusion-opacity": 1 } });
     roadWidths();
-    try { map.setSky(SKY(mode)); } catch (e) {}
-    if (ESRI_KEY) {   // satellite photos under the track up close (Esri World Imagery; tiles only load in these views)
-      if (!map.getSource("sat")) map.addSource("sat", { type: "raster", tileSize: 256, maxzoom: 19,
-        tiles: [`https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}?token=${encodeURIComponent(ESRI_KEY)}`],
-        attribution: "Powered by Esri · Esri, Maxar, Earthstar Geographics, and the GIS User Community" });
-      add({ id: "sat", type: "raster", source: "sat", layout: ride }, firstLabel);
-    }
+    try { map.setSky(SKY); } catch (e) {}
     addCars();
     add({ id: "pit", type: "line", source: "pit", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": mode ? "#8d93a8" : "#7a8194", "line-width": w(1, 2.5, 8), "line-dasharray": [2, 1.5] } });
     add({ id: "trk-edge", type: "line", source: "trk", filter: ["==", ["get", "k"], "edge"], layout: { "line-cap": "round", "line-join": "round" },
@@ -206,15 +169,22 @@ export async function createMap(el, { dark, onCar }) {
   }
   function showRide() {   // up close: the road and 3D cars; from afar: the coloured track and dots
     const on = riding(), vis = (id, show) => { try { if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", show ? "visible" : "none"); } catch (e) {} };   // (before the style loads: its style.load does it)
-    for (const id of ["sat", "road", "road-pit", "road-edge1", "road-edge-1", "kerb-w1", "kerb-w-1", "kerb-r1", "kerb-r-1", "car3d", "cars3d"]) vis(id, on);
-    vis("grass", on && !ESRI_KEY);   // the photos have the real grass
+    for (const id of ["grass", "road", "road-pit", "road-edge1", "road-edge-1", "kerb-w1", "kerb-w-1", "kerb-r1", "kerb-r-1", "cars3d"]) vis(id, on);
     if (on) loadCars();
+    // the clean look: of the base map only the ground and water, in daytime colours (from afar: the base map as it was)
+    const paintOf = l => l.type === "background" ? "background-color" : "fill-color";
+    for (const l of base) {
+      if (l.type === "background" || (l.water && l.type === "fill")) { vis(l.id, l.shown); try { map.setPaintProperty(l.id, paintOf(l), on ? (l.water ? DAY.water : DAY.ground) : l.colour); } catch (e) {} }
+      else vis(l.id, l.shown && (!on || l.water));
+    }
+    mini.hidden = !on;
     // buildings at their real height up close, and solid (from afar: taller, and the ones by the track see-through)
     const tall = on ? 1 : TALL, pp = (id, k, v) => { try { if (map.getLayer(id)) map.setPaintProperty(id, k, v); } catch (e) {} };
     for (const id of ["b3d", "b3d-near"]) { pp(id, "fill-extrusion-height", ["*", tall, ["coalesce", ["get", "render_height"], 8]]); pp(id, "fill-extrusion-base", ["*", tall, ["coalesce", ["get", "render_min_height"], 0]]); }
     pp("b3d-near", "fill-extrusion-opacity", on ? .9 : .16);
+    for (const id of ["b3d", "b3d-near"]) pp(id, "fill-extrusion-color", on ? DAY.buildings : mode ? "#414a63" : "#bfc5d1");
     try {   // up close the buildings go over the ground layers (the ground never hides a building); from afar the track goes over them
-      const under = on ? "car3d" : (map.getStyle().layers.find(l => l.type === "symbol") || {}).id;
+      const under = on ? "cars3d" : (map.getStyle().layers.find(l => l.type === "symbol") || {}).id;
       for (const id of ["b3d", "b3d-near"]) if (map.getLayer(id) && (!under || map.getLayer(under))) map.moveLayer(id, under);
     } catch (e) {}
     if (!on) { for (const c of cars.values()) c.e.classList.remove("away"); try { map.transform.fov = FOV; } catch (e) {} }
@@ -303,34 +273,53 @@ export async function createMap(el, { dark, onCar }) {
     const L = Math.hypot(hx, hy) || 1; hx /= L; hy /= L;
     if (c.hx == null) { c.hx = hx; c.hy = hy; } else { c.hx = c.hx * .8 + hx * .2; c.hy = c.hy * .8 + hy * .2; }
   }
-  // the 3D cars (js/car3d.js, with three.js), loaded the first time you ride with a car; until then (or if it can't load) boxes
+  // the 3D cars (js/car3d.js, with three.js), loaded the first time you ride with a car (if it can't load: just the tags)
   let car3 = null, carsP = null;
   function loadCars() {
     carsP = carsP || import("./car3d.js").then(m => m.carLayer(ml)).then(c => { car3 = c; if (tm) c.origin([tm.x0, tm.y0]); addCars(); showRide(); }).catch(e => console.warn(e));
   }
   function addCars() { try { if (car3 && !map.getLayer("cars3d")) map.addLayer(car3.layer); } catch (e) {} }
-  let camCar = null, frame = 0;
+  let camCar = null, frame = 0, miniKey = "";
+  function drawMini(c) {   // the circuit turned like the map from afar, in a 120 px box
+    if (!tm) return;
+    const r = -bearing * Math.PI / 180, cs = Math.cos(r), sn = Math.sin(r), turn = ([x, y]) => [x * cs - y * sn, x * sn + y * cs];
+    if (miniKey !== tm.x0 + "," + bearing) {
+      miniKey = tm.x0 + "," + bearing;
+      const P = tm.P.map(turn), xs = P.map(p => p[0]), ys = P.map(p => p[1]);
+      const x0 = Math.min(...xs), y1 = Math.max(...ys), k = 110 / Math.max(Math.max(...xs) - x0, y1 - Math.min(...ys));
+      mini.fit = ([x, y]) => [5 + (x - x0) * k, 5 + (y1 - y) * k];
+      const path = P.map(p => mini.fit(p).map(v => v.toFixed(1)).join(",")).join(" ");
+      const H = 10 + (y1 - Math.min(...ys)) * k, W = 10 + (Math.max(...xs) - x0) * k;
+      mini.innerHTML = `<svg viewBox="0 0 ${W.toFixed(0)} ${H.toFixed(0)}" width="${W.toFixed(0)}" height="${H.toFixed(0)}"><polygon points="${path}" class="mm-edge"/><polygon points="${path}" class="mm-trk"/><g class="mm-cars"></g></svg>`;
+      mini.dots = new Map(); mini.g = mini.querySelector(".mm-cars");
+    }
+    for (const [n, o] of cars) {
+      if (!o.at) continue;
+      let d = mini.dots.get(n);
+      if (!d) { d = document.createElementNS("http://www.w3.org/2000/svg", "circle"); mini.g.appendChild(d); mini.dots.set(n, d); }
+      const [x, y] = mini.fit(turn(toM(o.at)));
+      d.setAttribute("cx", x.toFixed(1)); d.setAttribute("cy", y.toFixed(1)); d.setAttribute("r", o === c ? 4.5 : 3);
+      d.setAttribute("fill", o.colour); d.classList.toggle("mm-me", o === c);
+      if (o === c) mini.g.appendChild(d);   // on top
+    }
+    for (const [n, d] of mini.dots) if (!cars.has(n)) { d.remove(); mini.dots.delete(n); }
+  }
   function ride() {   // once a frame while riding: the 3D cars near the camera's car, the tags worth showing, and the camera itself
     frame = 0;
     const c = cars.get(camCar); if (!riding() || !c || !c.at) return;
     for (const o of cars.values()) if (o.at && metresBetween(o.at, c.at) < 400) heading(o);
-    const feats = [], list = [], three = car3 && tm, ux = c.hx || 1, uy = c.hy || 0, k = Math.cos(lat * Math.PI / 180);
+    const list = [], ux = c.hx || 1, uy = c.hy || 0, k = Math.cos(lat * Math.PI / 180);
     for (const o of cars.values()) {
       if (!o.at) continue;
       const dx = (o.at[0] - c.at[0]) * M * k, dy = (o.at[1] - c.at[1]) * M, dist = Math.hypot(dx, dy), ahead = dx * ux + dy * uy;
       // tags only for cars in sight: not far off, and from the road or the driver's seat not behind
       o.e.classList.toggle("away", dist > 400 || (viewNow !== "heli" && o !== c && ahead < -2));
       if (dist > 400 || (viewNow !== "heli" && o !== c && ahead < 0 && ahead > -16)) continue;   // nor a car right behind, between it and the camera
-      const own = o === c && viewNow === "driver";   // from the driver's seat: just the nose, front wing, front wheels and mirrors
-      if (three) { list.push({ n: o.e, at: o.at, angle: Math.atan2(o.hy || 0, o.hx || 1), colour: o.colour, ink: ink(o.colour), num: o.num, tyre: o.tyre, own }); continue; }
-      for (const [shape, b, h, col, seen] of CAR) {
-        if (own && !seen) continue;
-        const ring = shape.map(([x, y]) => along(o, x, y)); ring.push(ring[0]);
-        feats.push({ type: "Feature", properties: { c: col === "T" ? o.colour : PARTS[col], b, h }, geometry: { type: "Polygon", coordinates: [ring] } });
-      }
+      list.push({ n: o.e, at: o.at, angle: Math.atan2(o.hy || 0, o.hx || 1), colour: o.colour, ink: ink(o.colour), num: o.num, tyre: o.tyre,
+                  own: o === c && viewNow === "driver" });   // (riding behind its driver's head: the driver isn't drawn)
     }
-    if (three) car3.show(list);
-    if (feats.length || data.car3d.features.length) set("car3d", fc(feats));
+    if (car3) car3.show(list);
+    drawMini(c);
     const r = RIDES[viewNow], from = along(c, r.from[0], r.from[1]), to = along(c, r.to[0], r.to[1]);
     try { if (Math.abs(map.transform.fov - (r.fov || FOV)) > .01) map.transform.fov = r.fov || FOV; } catch (e) {}   // (MapLibre 4's transform)
     try { map.jumpTo(map.calculateCameraOptionsFromTo(ml.LngLat.convert(from), r.from[2], ml.LngLat.convert(to), r.to[2])); } catch (e) {}
