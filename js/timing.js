@@ -1018,6 +1018,10 @@ audio.addEventListener("ended", () => {
 // Drawn two ways: on a real map of the circuit's surroundings (geomap.js: 3D or from the top), or as the classic flat outline.
 // Car positions are worked out on the outline either way; the real map gets them turned into longitude and latitude.
 let circuit = null, circuitKey = null, trackLen = [], mapBox = null, sectorIdx = [];
+// Heli, Road and Driver ride with a car: they can only be picked while there are cars on the map (a live session or a replay)
+const RIDES = new Set(["heli", "road", "driver"]);
+let canRide = false;
+const viewNow = () => RIDES.has(mapView) && !canRide ? "3d" : mapView;   // until then a chosen ride view shows as 3D
 let mapView = "3d", geo = null, geoMaking = null, geoRef = null, geoKey = "", geoToken = 0, inv = null, secCut = null, cornerLabels = [];
 const isDark = () => document.documentElement.dataset.mode === "dark";
 // a point of the flat outline (screen units) back to F1's coordinates, then to [lng, lat]
@@ -1042,7 +1046,7 @@ async function setupGeo() {   // can run several times at once: they share the w
     if (screen !== geoToken || geoKey !== key || mapView === "classic") return;
     $("mapwrap").classList.add("geo");   // shown first, so the map knows its size when it frames the circuit
     pushTrack();
-    geo.view(mapView);
+    geo.view(viewNow());
   } catch (e) { console.warn(e); if (screen === geoToken) $("mapwrap").classList.remove("geo"); }
 }
 function pushTrack() {   // the circuit, its sectors, corners, pit lane and flags onto the real map
@@ -1326,6 +1330,7 @@ function animateCars(ts) {   // each car: a dot on the racing line, with its tag
   }
   for (const [num, c] of Object.entries(cars)) if (!seen.has(num)) { c.el.remove(); delete cars[num]; }
   const order = Object.entries(cars).sort((a, b) => a[1].line - b[1].line);
+  if (!!order.length !== canRide) { canRide = !!order.length; pressView(); if (geo && geoRef && mapView !== "classic") geo.view(viewNow()); }
   const H = 12, W0 = circuit.w;
   for (const [, c] of order) {
     const sc = c.inPit ? 0.7 : 1, w = c.w * sc, h = H * sc, gap = c.inPit ? 5 : 8;   // in the pit lane: smaller
@@ -1445,7 +1450,12 @@ function fillColumns() {
   $("colPicks").innerHTML = COLS.map(([k, label]) => `<label><span>${label}${COL_NOTES[k] ? `<small>${COL_NOTES[k]}</small>` : ""}</span>
     <span class="switch"><input type="checkbox" data-k="${k}" ${hiddenCols.has(k) ? "" : "checked"}></span></label>`).join("");
 }
-const pressView = () => { for (const b of $("mapView").children) b.setAttribute("aria-pressed", String(b.dataset.v === mapView)); };
+const pressView = () => {
+  for (const b of $("mapView").children) {
+    b.setAttribute("aria-pressed", String(b.dataset.v === viewNow()));
+    b.disabled = RIDES.has(b.dataset.v) && !canRide; b.title = b.disabled ? "Needs cars on track: a live session or a replay" : "";
+  }
+};
 function setSub(k) {   // phone: which group of panels shows
   const tabs = [...$("tsubs").children];
   if (!tabs.some(b => b.dataset.k === k)) k = "timing";
@@ -1467,7 +1477,7 @@ function wire(root) {
     const b = e.target.closest("button"); if (!b) return;
     mapView = b.dataset.v; store.set("f1.mapview", mapView); pressView();
     if (mapView === "classic") { $("mapwrap").classList.remove("geo"); if (circuit) { drawCircuit(); dirty = true; } }
-    else if (geo && geoRef) { $("mapwrap").classList.add("geo"); geo.view(mapView); }
+    else if (geo && geoRef) { $("mapwrap").classList.add("geo"); geo.view(viewNow()); }
     else setupGeo();
   });
   on("radio", "click", e => {
@@ -1547,7 +1557,7 @@ export function mountTiming(el, { replay = null, app = null } = {}) {
   towerRows = {}; towerHead = ""; radioSeen = null; rcSeen = null; radioKey = ""; radioWho = ""; playingSrc = null;
   circuit = null; circuitKey = null; pitLane = null; trackLen = []; placeFor = ""; place = null; rainChance = null;
   geo = null; geoMaking = null; geoRef = null; geoRefP = null; geoKey = ""; inv = null; secCut = null; cornerLabels = [];
-  mapView = store.get("f1.mapview", "3d");
+  mapView = store.get("f1.mapview", "3d"); canRide = false;
   if (mapView !== "classic") G.preload();
   champKey = ""; posKey = ""; fKey = ""; penCache = { key: null, v: null }; secKey = ""; flagKey = ""; nextKey = "";
   for (const k in cars) delete cars[k]; for (const k in pitSince) delete pitSince[k];

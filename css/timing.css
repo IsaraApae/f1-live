@@ -85,6 +85,7 @@ small.u { color: var(--dim); font-size: 10px; }
 .mapwrap.geo .gmap { display: block; }
 .mapwrap.geo #map { display: none; }
 #mapView button { padding: 4px 10px; font-size: 11.5px; }
+#mapView button:disabled { opacity: .35; cursor: not-allowed; }
 .gcar { display: grid; justify-items: center; cursor: pointer; transition: opacity .2s; }
 .gcar > * { transition: transform .15s; }
 .gtag { display: inline-flex; height: 18px; border-radius: 5px; overflow: hidden; font: 900 11px/18px Inter, system-ui, sans-serif; letter-spacing: .3px;
