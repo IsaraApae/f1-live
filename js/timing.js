@@ -376,7 +376,7 @@ function syncReplayBar() {
   if (!seeking) $("rSeek").value = String(Math.round(1000 * part));
   $("rDone").style.width = (100 * part).toFixed(2) + "%";
   const race = R.data && R.data.sess.session_type === "Race";
-  $("rTime").textContent = clock(R.t - R.start);
+  $("rTime").textContent = `${clock(R.t - R.start)} / ${clock(R.end - R.start)}`;
   $("rLap").innerHTML = `${race ? "Lap " + Math.max(1, lapAt(R.t)) + "/" + R.data.totalLaps : ""}<span class="tod">${race ? " · " : ""}${timeOf(R.t)}</span>`;
 }
 let seeking = false;
@@ -411,6 +411,7 @@ function drawMarks() {   // the replay timeline: yellow flag, safety car, VSC an
     const aborted = said(/^SESSION ABORTED|^RED FLAG/);
     for (const r of starts.filter(t => t > lap1 + 60000 && aborted.some(a => a < t))) evs.push({ at: r, label: "Restart", cls: "go", pri: 2 });
     const fin = flags.find(t => t > lap1); if (fin) evs.push({ at: fin, label: "Finish", cls: "chq", pri: 3 });
+    if (isFinite(lap1)) segs.push({ cls: "q run", from: lap1, to: fin || R.end, label: "" });   // the race itself, green ahead of the play head
   } else if (D.parts.length) {
     for (const k of [1, 2, 3]) {
       const from = (D.parts.find(x => x.p === k) || {}).at; if (!from) continue;
@@ -421,13 +422,17 @@ function drawMarks() {   // the replay timeline: yellow flag, safety car, VSC an
   } else {
     if (starts[0]) evs.push({ at: starts[0], label: "Start", cls: "go", pri: 3 });
     if (flags[0]) evs.push({ at: flags[0], label: "Finish", cls: "chq", pri: 3 });
+    if (starts[0]) segs.push({ cls: "q run", from: starts[0], to: flags.find(t => t > starts[0]) || R.end, label: "" });   // the session, green ahead
   }
   $("rSegs").innerHTML = segs.map(g => `<i class="tseg ${g.cls}" style="left:${x(g.from).toFixed(2)}%;width:${(x(g.to) - x(g.from)).toFixed(2)}%" title="${esc(g.label)}"></i>`).join("");
+  // dots on the line: green where a part (Q1-Q3) or the race starts, white where it ends
+  $("rDots").innerHTML = [...segs.filter(g => /^q q\d/.test(g.cls)).map(g => [g.from, "go"]), ...evs.filter(e => e.cls === "go" || e.cls === "chq").map(e => [e.at, e.cls])]
+    .map(([at, k]) => `<i class="pdot ${k}" style="left:${x(at).toFixed(2)}%"></i>`).join("");
   // labels above the rail; one that would overlap a more important one is left out (its marker stays)
   // the formation lap's label goes in the row below (with the lap numbers, which start at lap 10)
   $("rLaps").innerHTML += segs.filter(g => g.cls === "form").map(g => `<span class="formlabel" style="left:${x(g.from).toFixed(2)}%">Formation lap</span>`).join("");
   const W = $("rLine").clientWidth || 600, labels = [
-    ...segs.filter(g => g.cls !== "form").map(g => ({ at: (g.from + g.to) / 2, label: g.label, cls: "seglabel " + g.cls, pri: g.pri })),
+    ...segs.filter(g => g.cls !== "form" && g.label).map(g => ({ at: (g.from + g.to) / 2, label: g.label, cls: "seglabel " + g.cls, pri: g.pri })),
     ...evs.map(e => ({ ...e, cls: "ev " + e.cls }))];
   const kept = [];
   for (const L of labels.slice().sort((a, b) => b.pri - a.pri)) {
@@ -1409,22 +1414,24 @@ function markup(replay) {
     </div>
   </div>
   ${replay ? `<div class="rbar" id="rbar" hidden>
-    <div class="timeline" id="rLine">
-      <div id="rEvents"></div>
-      <div class="rail"><div class="done" id="rDone"></div><div id="rSegs"></div><div id="rBands"></div></div>
-      <div id="rLaps"></div>
-      <input type="range" id="rSeek" min="0" max="1000" value="0" aria-label="Replay position">
-      <div class="tip" id="rTip" hidden></div>
-    </div>
-    <div class="rkey" id="rKey"></div>
     <div class="rctl">
       <button class="ico" id="rBack" type="button" aria-label="Back 30 seconds"><svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05 1-6.9 2.6L2 7v9h9l-3.62-3.62A7.97 7.97 0 0 1 20.5 16l2.37-.78A10.48 10.48 0 0 0 12.5 8z"/></svg></button>
       <button class="ico big" id="rPlay" type="button" aria-label="Play or pause"></button>
       <button class="ico" id="rFwd" type="button" aria-label="Forward 30 seconds"><svg viewBox="0 0 24 24"><path d="M18.4 10.6A10.4 10.4 0 0 0 11.5 8 10.48 10.48 0 0 0 1.13 15.22l2.37.78a7.97 7.97 0 0 1 13.12-3.62L13 16h9V7z"/></svg></button>
-      <span class="rclock"><b id="rTime"></b><small id="rLap"></small></span>
-      <span class="rtitle" id="rTitle"></span>
-      <span class="speeds" id="rSpeed">${[1, 2, 4, 8, 16, 32].map(s => `<button type="button" data-s="${s}" aria-pressed="${s === 1}">${s}×</button>`).join("")}</span>
     </div>
+    <div class="rmid">
+      <div class="rhead"><b>Session replay</b><span class="rtitle" id="rTitle"></span><span class="rclock"><b id="rTime"></b><small id="rLap"></small></span></div>
+      <div class="timeline" id="rLine">
+        <div id="rEvents"></div>
+        <div class="rail"><div id="rSegs"></div><div class="done" id="rDone"></div><div id="rBands"></div></div>
+        <div id="rDots"></div>
+        <div id="rLaps"></div>
+        <input type="range" id="rSeek" min="0" max="1000" value="0" aria-label="Replay position">
+        <div class="tip" id="rTip" hidden></div>
+      </div>
+      <div class="rkey" id="rKey"></div>
+    </div>
+    <span class="speeds" id="rSpeed">${[1, 2, 4, 8, 16, 32].map(s => `<button type="button" data-s="${s}" aria-pressed="${s === 1}">${s}×</button>`).join("")}</span>
   </div>` : ""}
   <div class="sheet" id="colSheet" hidden><div>
     <h3>Timing columns <button class="x" type="button" data-close aria-label="Close">✕</button></h3>
