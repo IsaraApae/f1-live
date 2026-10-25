@@ -1043,7 +1043,7 @@ async function setupGeo() {   // can run several times at once: they share the w
     $("mapwrap").classList.add("geo");   // shown first, so the map knows its size when it frames the circuit
     pushTrack();
     geo.view(mapView);
-  } catch (e) { if (screen === geoToken) $("mapwrap").classList.remove("geo"); }
+  } catch (e) { console.warn(e); if (screen === geoToken) $("mapwrap").classList.remove("geo"); }
 }
 function pushTrack() {   // the circuit, its sectors, corners, pit lane and flags onto the real map
   if (!geo || !geoRef || !circuit) return;
@@ -1347,9 +1347,10 @@ function animateCars(ts) {   // each car: a dot on the racing line, with its tag
   const key = order.map(o => o[0]).join() + follow;   // the leader drawn on top, and whoever you follow above all
   if (key !== g.dataset.order) { g.dataset.order = key; [...order].reverse().forEach(([, c]) => g.appendChild(c.el)); if (follow && cars[follow]) g.appendChild(cars[follow].el); }
   if (geo && geoRef && $("mapwrap").classList.contains("geo")) {   // the real map: the same cars, in longitude and latitude
+    const cam = follow && cars[follow] ? follow : order.length ? order[0][0] : null;   // Heli, Road and Driver ride with the car you follow, else the leader
     for (const [n, c] of order) {
       const d = driver(n);
-      geo.moveCar(n, toGeo(c.x, c.y), { colour: colour(d), num: d.RacingNumber || n, tla: d.Tla || n, z: n === follow ? 300 : 200 - c.line });
+      geo.moveCar(n, toGeo(c.x, c.y), { colour: colour(d), num: d.RacingNumber || n, tla: d.Tla || n, z: n === follow ? 300 : 200 - c.line, cam: n === cam });
       geo.setLook(n, c.look || "");
     }
     for (const n of geo.cars()) if (!cars[n]) geo.dropCar(n);
@@ -1400,7 +1401,7 @@ function markup(replay) {
     <div class="tcol">
       ${panel("p-follow", "timing track", `<span>Following</span><button class="x" id="fClose" type="button" aria-label="Stop following">✕</button>`, `<div class="fhead" id="fHead"></div><div class="fstats" id="fStats"></div>${replay ? A.followExtra() : ""}`, "hidden")}
       ${panel("p-map", "track", `<span>Track map</span><span class="hd-tools"><span class="legend2"><span><i style="background:#ff3b5c"></i>S1</span><span><i style="background:#3b9eff"></i>S2</span><span><i style="background:#ffd60a"></i>S3</span></span>
-          <span class="seg" id="mapView" role="group" aria-label="Map view"><button type="button" data-v="3d">3D</button><button type="button" data-v="top">Top</button><button type="button" data-v="classic">Classic</button></span></span>`,
+          <span class="seg" id="mapView" role="group" aria-label="Map view"><button type="button" data-v="3d">3D</button><button type="button" data-v="top">Top</button><button type="button" data-v="classic">Classic</button><button type="button" data-v="heli">Heli</button><button type="button" data-v="road">Road</button><button type="button" data-v="driver">Driver</button></span></span>`,
         `<div class="mapwrap" id="mapwrap"><svg id="map" viewBox="0 0 400 300" role="img" aria-label="Circuit map with each car's position"></svg>
           <div class="gmap" id="gmap" role="img" aria-label="The circuit on a map of its surroundings, with each car's position"></div>
           <div class="legend" id="mapLegend" hidden><span><i style="background:#facc15"></i>Yellow flag (flashing)</span></div></div>`)}
