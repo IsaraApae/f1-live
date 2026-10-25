@@ -1,6 +1,7 @@
 // The timing screen, used by the Live tab and by replays: live from Formula 1's own feed (the browser connects straight to it),
 // or any past session rebuilt from OpenF1 in the live feed's shapes. Only one is on screen at a time.
 import { esc, store, sleep, photo as photoOf, teamLogo as logoOf, ink, tagVars, slug, TYRES, lapText, ICONS, countdownHtml, fmtWhen, SHORT } from "./util.js";
+import { liveTracker } from "./livepos.js";
 import { of1, jolpica, forecast, forecastFor } from "./api.js";
 import { currentSeason, season as seasonOf, allSessions } from "./season.js";
 import * as A from "./analysis.js";
@@ -15,8 +16,7 @@ const RS = "\u001e";
 
 let S = {};                            // what's on screen, one object per F1 topic (the live feed's shapes; a replay fills the same)
 let mode = "off";                      // live | replay | off (not on screen)
-const prog = {};                       // live map: mini-sectors passed this lap per car
-const segFrac = [];                    // live map: learned from clean laps, how far through a lap each mini-sector ends
+const live = liveTracker();            // live map: where each car is between F1's timing marks (livepos.js)
 const now = () => mode === "replay" ? R.t : Date.now();
 let dirty = true, APP = null;
 
@@ -67,20 +67,7 @@ function segmentsPassed(line) {
 function trackLive(ts) {
   for (const [num, line] of Object.entries((S.TimingData || {}).Lines || {})) {
     const [n, total] = segmentsPassed(line);
-    const p = prog[num] || (prog[num] = { n: -1, at: ts, marks: [] });
-    if (n === p.n) continue;
-    if (n < p.n) {                       // the marks reset: a new lap began at the previous lap's last mark
-      const end = p.marks[p.total - 1], lap = seconds((line.LastLapTime || {}).Value) * 1000;
-      if (p.start && end && p.marks.filter(Boolean).length === p.total && Math.abs(end - p.start - lap) < 2000) {
-        for (let k = 0; k < p.total; k++) {   // a clean lap seen whole: learn where each mini-sector ends
-          const f = (p.marks[k] - p.start) / (end - p.start);
-          segFrac[k] = segFrac[k] == null ? f : segFrac[k] * 0.8 + f * 0.2;
-        }
-      }
-      p.start = end || null; p.marks = []; p.n = 0;
-    }
-    for (let k = Math.max(0, p.n); k < n; k++) p.marks[k] = ts;
-    p.n = n; p.at = ts; p.total = total;
+    if (total) live.mark(num, n, total, ts, (seconds((line.LastLapTime || {}).Value) || seconds((line.BestLapTime || {}).Value)) * 1000);
   }
 }
 let ws, pingTimer, retryTimer, retry = 0;
@@ -1068,12 +1055,17 @@ async function loadCircuit() {
   for (const y of [year(), year() - 1, year() - 2]) {
     try { const r = await fetch(`https://api.multiviewer.app/api/v1/circuits/${key}/${y}`); if (r.ok) { circuit = await r.json(); break; } } catch (e) {}
   }
-  let sk = null;   // an OpenF1 session at this circuit, for what MultiViewer doesn't have
-  try { sk = await trackSession(key); } catch (e) {}
-  if (!circuit && sk) try { circuit = await outlineFromLap(sk); } catch (e) {}   // a circuit MultiViewer doesn't have (2026: Madrid, Kuala Lumpur)
   if (key !== circuitKey || mode === "off") return;
-  if (circuit) drawCircuit();
-  if (circuit && sk) try { pitLane = await pitLaneFrom(sk); if (key === circuitKey && mode !== "off") drawPit(); } catch (e) {}
+  if (circuit) drawCircuit();   // the track straight away, before anything from OpenF1
+  // an OpenF1 session at this circuit, for what MultiViewer and the saved pit lanes don't have (live, OpenF1 may not answer)
+  let sk = null;
+  if (!circuit || !(mode === "live" && (await pitPaths())[key])) try { sk = await trackSession(key); } catch (e) {}
+  if (!circuit && sk) {   // a circuit MultiViewer doesn't have (2026: Madrid, Kuala Lumpur)
+    try { circuit = await outlineFromLap(sk); } catch (e) {}
+    if (key !== circuitKey || mode === "off") return;
+    if (circuit) drawCircuit();
+  }
+  if (circuit) try { pitLane = await pitLaneFrom(key, sk); if (key === circuitKey && mode !== "off") drawPit(); } catch (e) {}
 }
 let pitLane = null;   // the pit lane as a car drove it: raw x/y and how far through (in time) each point is
 const isoAt = t => new Date(t).toISOString();
@@ -1094,18 +1086,29 @@ async function outlineFromLap(sk) {   // the track from one ordinary lap's car p
   if (pts.length < 50) return null;
   return { x: pts.map(p => p.x), y: pts.map(p => p.y), trackPositionTime: pts.map(p => Date.parse(p.date)), rotation: 0, corners: [], marshalSectors: [], fromLap: true };
 }
-async function pitLaneFrom(sk) {   // one ordinary pit stop's path: the stretch where the car is off the racing line
+// every circuit's pit lane path, saved from its latest race when the site is published (scripts/pitlanes.mjs): live, OpenF1
+// doesn't answer free requests during a session, so the Live tab can't ask it then
+let savedPits = null;
+const pitPaths = () => savedPits = savedPits || fetch("pitlanes.json").then(r => r.ok ? r.json() : {}).catch(() => ({}));
+async function pitPath(key, sk) {   // one ordinary pit stop's car positions: [{ x, y, t }]
+  const kept = mode === "live" && (await pitPaths())[key];   // a replay uses its own session's stops
+  if (kept) return kept.path.map(([x, y, t]) => ({ x, y, t }));
+  if (!sk) return null;
   const stops = (await of1(`pit?session_key=${sk}`, { ttl: 7 * 86400000 })).filter(p => p.lane_duration > 12 && p.lane_duration < 45);
   if (!stops.length) return null;
   const p = stops[0], a = Date.parse(p.date) - (p.lane_duration + 15) * 1000, b = Date.parse(p.date) + 15000;   // the whole lane: it ends ~5 s after the pit time
-  const pts = (await of1(`location?session_key=${sk}&driver_number=${p.driver_number}&date>=${isoAt(a)}&date<=${isoAt(b)}`, { ttl: 7 * 86400000 })).filter(q => q.x || q.y);
-  if (!circuit) return null;
+  return (await of1(`location?session_key=${sk}&driver_number=${p.driver_number}&date>=${isoAt(a)}&date<=${isoAt(b)}`, { ttl: 7 * 86400000 }))
+    .filter(q => q.x || q.y).map(q => ({ x: q.x, y: q.y, t: Date.parse(q.date) }));
+}
+async function pitLaneFrom(key, sk) {   // the pit lane: the stretch of one ordinary stop where the car is off the racing line
+  const pts = await pitPath(key, sk);
+  if (!circuit || !pts) return null;
   const off = pts.map(q => { let m = Infinity; for (let i = 0; i < circuit.x.length; i += 2) m = Math.min(m, (circuit.x[i] - q.x) ** 2 + (circuit.y[i] - q.y) ** 2); return Math.sqrt(m) > 45; });
   let best = [0, -1], run = null;   // the longest stretch off the track
   off.forEach((o, i) => { if (o) { run = run || [i, i]; run[1] = i; if (run[1] - run[0] > best[1] - best[0]) best = run.slice(); } else run = null; });
   if (best[1] - best[0] < 20) return null;
-  const seg = pts.slice(Math.max(0, best[0] - 3), best[1] + 4), t0 = Date.parse(seg[0].date), t1 = Date.parse(seg[seg.length - 1].date);
-  return { raw: seg.map(q => [q.x, q.y]), tf: seg.map(q => (Date.parse(q.date) - t0) / (t1 - t0 || 1)) };
+  const seg = pts.slice(Math.max(0, best[0] - 3), best[1] + 4), t0 = seg[0].t, t1 = seg[seg.length - 1].t;
+  return { raw: seg.map(q => [q.x, q.y]), tf: seg.map(q => (q.t - t0) / (t1 - t0 || 1)) };
 }
 function drawPit() {   // the pit lane: drawn alongside the stretch of track it runs beside, merging in at the entry and exit
   const g = $("pit"); if (!g || !circuit || !pitLane) return;
@@ -1236,6 +1239,7 @@ export function pointAt(f) {   // a fraction of the lap -> a point on the outlin
   const i = lo, a = trackLen[i - 1], b = trackLen[i], u = b > a ? (f - a) / (b - a) : 0, p = circuit.screen[i - 1], q = circuit.screen[i];
   return [p[0] + (q[0] - p[0]) * u, p[1] + (q[1] - p[1]) * u, i];
 }
+let frameMs = 16;   // live: how long since the last frame, for the live tracker
 export function lapFraction(num, l, t = now()) {
   if (mode === "replay") {   // where in its lap the car is, from the lap's start and length; between laps, the next lap
     const D = R.data, first = (l._laps || [])[0];
@@ -1255,11 +1259,7 @@ export function lapFraction(num, l, t = now()) {
     }
     return f;
   }
-  const p = prog[num]; if (!p || !p.total) return null;
-  const lap = (seconds((l.LastLapTime || {}).Value) || seconds((l.BestLapTime || {}).Value) || 100) * 1000;
-  const end = k => segFrac[k] != null ? segFrac[k] : (k + 1) / p.total;   // learned, or evenly spaced until a lap is seen
-  const a = p.n ? end(p.n - 1) : 0, b = p.n < p.total ? end(p.n) : 1 + end(0);
-  return a + (b - a) * Math.min(1.3, Math.max(0, (now() - p.at) / ((b - a) * lap)));   // keep moving if the next mark is a little late
+  return live.place(num, t, frameMs);
 }
 const cars = {};   // one drawn tag per car, moved smoothly every frame
 function resetCars() { for (const k in cars) delete cars[k]; const g = $("cars"); if (g) g.innerHTML = ""; }
@@ -1274,7 +1274,7 @@ function pitProgress(num, at) {   // how far through the pit lane a pitting car 
 function animateCars(ts) {   // each car: a dot on the racing line, with its tag just above it
   if (mode === "off") return;
   rafId = requestAnimationFrame(animateCars);
-  const g = $("cars"), dt = Math.min(0.1, lastFrame ? (ts - lastFrame) / 1000 : 0); lastFrame = ts;
+  const g = $("cars"), dt = Math.min(0.1, lastFrame ? (ts - lastFrame) / 1000 : 0); lastFrame = ts; frameMs = dt * 1000;
   if (!g || !circuit || !trackLen.length) return;
   const at = mode === "replay" && R.playing && R.last ? Math.min(R.end, R.t + (performance.now() - R.last) * R.speed) : now();   // replay: the moment this frame shows
   const lines = (S.TimingData || {}).Lines || {};
@@ -1310,12 +1310,10 @@ function animateCars(ts) {   // each car: a dot on the racing line, with its tag
       c.x += (px - c.x) * k; c.y += (py - c.y) * k;
       if (Math.hypot(px - c.x, py - c.y) < 0.5) c.inPit = true;
     } else {
-      if (c.inPit && mode !== "replay" && pitLane && pitLane.fx != null) c.f = pitLane.fx;   // live: just out of the pits, carry on from the exit
+      if (c.inPit && mode !== "replay") live.jump(num);   // live: just out of the pits, straight to where the marks say
       c.inPit = false;
-      // replay: exactly where its lap timing puts it. Live: ease toward the estimate, so a timing mark that comes early or late isn't a jump
-      let diff = target - c.f; diff -= Math.round(diff);
-      c.f += mode === "replay" || Math.abs(diff) > 0.25 ? diff : diff * Math.min(1, dt * 4);
-      if (red && !(pitLane && pitLane.screen)) c.f -= diff * (mode === "replay" ? 1 : 0);   // red flag, no pit lane known: hold still
+      // replay: exactly where its lap timing puts it. Live: where the live tracker has it (it never jumps or goes backwards)
+      if (!(red && mode === "replay" && !(pitLane && pitLane.screen))) c.f = target;
       const [x, y] = pointAt(c.f);
       c.x = x; c.y = y;
     }
@@ -1535,7 +1533,7 @@ const offs = [];
 export function mountTiming(el, { replay = null, app = null } = {}) {
   stop();
   APP = app;
-  S = {}; for (const k in prog) delete prog[k]; segFrac.length = 0; lapLog.length = 0; for (const k in pitLog) delete pitLog[k];
+  S = {}; live.clear(); lapLog.length = 0; for (const k in pitLog) delete pitLog[k];
   Object.assign(R, { t: 0, start: 0, end: 0, playing: false, data: null, last: 0, dirty: false });
   towerRows = {}; towerHead = ""; radioSeen = null; rcSeen = null; radioKey = ""; radioWho = ""; playingSrc = null;
   circuit = null; circuitKey = null; pitLane = null; trackLen = []; placeFor = ""; place = null; rainChance = null;

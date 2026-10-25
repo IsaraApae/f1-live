@@ -42,12 +42,20 @@ function slot() {
   queue = run.catch(() => {});
   return run;
 }
+// OpenF1's free data is between sessions: while one is live it refuses free requests (401/403). That isn't "busy": stop
+// asking for a few minutes, without the banner (the live timing itself comes from F1's feed, not OpenF1)
+let closedUntil = 0;
 async function getOpenF1(url) {
   for (let i = 0, waited = 0; waited < 120000; i++) {
+    if (Date.now() < closedUntil) throw new Error("OpenF1 is closed during a live session");
     await slot();
     let r; try { r = await fetch(url); } catch (e) { r = null; }
     if (r && r.ok) { say("OpenF1", false); return r.json(); }
     if (r && (r.status === 404 || r.status === 422)) return [];
+    const why = r && !r.ok && r.status !== 429 ? await r.text().catch(() => "") : "";
+    if (r && (r.status === 401 || r.status === 403 || /live|sponsor|subscri|authenticat|token/i.test(why))) {
+      closedUntil = Date.now() + 5 * 60000; say("OpenF1", false); throw new Error("OpenF1 is closed during a live session");
+    }
     const pause = r && r.status === 429 ? Math.min(20000, 1000 * (+r.headers.get("Retry-After") || 8)) : 2000 * (i + 1);
     say("OpenF1", true);
     await sleep(pause); waited += pause;

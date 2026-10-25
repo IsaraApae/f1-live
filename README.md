@@ -30,8 +30,11 @@ A free Formula 1 companion in the browser: live timing, the track on a real 3D m
 | [bacinger/f1-circuits](https://github.com/bacinger/f1-circuits) | Circuit shapes, to place F1's track coordinates on the map |
 | [Open-Meteo](https://open-meteo.com) | Forecasts at the circuit |
 | Publishers' RSS feeds | Headlines (collected by `scripts/news.mjs` when the site is published) |
+| `pitlanes.json` (built from OpenF1 by `scripts/pitlanes.mjs`) | Every circuit's pit lane for the Live tab: one ordinary stop's path from the circuit's latest race. OpenF1 only answers free requests between sessions, so the Live tab doesn't ask it during one |
 
-OpenF1 allows 30 requests a minute; `js/api.js` queues requests and waits when it's busy.
+OpenF1 allows 30 requests a minute; `js/api.js` queues requests and waits when it's busy. During a live session OpenF1 refuses free requests; the site then stops asking it for a few minutes, without the "busy" banner (the live timing comes from Formula 1's feed).
+
+Live car positions on the map are worked out from Formula 1's mini-sector marks (exact positions are only on F1 TV): `js/livepos.js` runs each car through every mini-sector at its own pace from its last lap, and the drawn car speeds up or slows down a little to stay with the marks, so it never jumps or goes backwards (checked by `tools/check.mjs`).
 
 ## Run it on your computer
 
