@@ -122,18 +122,21 @@ async function startReplay(key) {
   if (ws) { const old = ws; ws = null; old.close(); }
   setLive("loading"); $("rbar").hidden = false; $("event").textContent = "Loading the replay…"; $("sub").textContent = "";
   try {
-    const [sess] = await of1(`sessions?session_key=${key}`, { ttl: 7 * 86400000 });
+    const [sess] = await of1(`sessions?session_key=${key}`, { ttl: 7 * 86400000 });   // (small: localStorage)
     if (!sess) throw new Error("no such session");
     if (Date.parse(sess.date_end) > Date.now()) { $("event").textContent = "This session hasn't finished yet"; $("sub").textContent = "Replays are ready once a session is over. Watch it on the Live tab."; setLive("waiting"); return; }
     const names = ["drivers", "laps", "position", "stints", "pit", "race_control", "team_radio", "weather", "session_result"];
     if (sess.session_type === "Race") names.push("championship_drivers", "championship_teams");
-    const got = {};
-    for (const n of names) {
-      if (token !== replayToken) return;
-      $("sub").textContent = `${Math.round(100 * Object.keys(got).length / names.length)}%`;
-      got[n] = await of1(`${n}?session_key=${key}`, { ttl: n === "position" || n === "laps" ? 0 : 7 * 86400000 });
-    }
-    const [meet] = await of1(`meetings?meeting_key=${sess.meeting_key}`, { ttl: 7 * 86400000 });
+    // all asked for at once (OpenF1's queue spaces them); over an hour after the end, the data is final: kept for good
+    const forever = Date.parse(sess.date_end) < Date.now() - 3600000, got = {};
+    $("sub").textContent = "0%";
+    const meetP = of1(`meetings?meeting_key=${sess.meeting_key}`, { ttl: 7 * 86400000, forever });
+    await Promise.all(names.map(n => of1(`${n}?session_key=${key}`, { ttl: n === "position" || n === "laps" ? 0 : 7 * 86400000, forever }).then(v => {
+      got[n] = v;
+      if (token === replayToken) $("sub").textContent = `${Math.round(100 * Object.keys(got).length / names.length)}%`;
+    })));
+    if (token !== replayToken) return;
+    const [meet] = await meetP;
     got.extra = {};   // in the championship but not in this session: their latest team, and an older entry's photo
     for (const c of got.championship_drivers || []) {
       if (got.drivers.some(d => d.driver_number === c.driver_number) || token !== replayToken) continue;
