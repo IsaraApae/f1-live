@@ -17,6 +17,10 @@ export default {
       <div class="stack"><div id="hStand"></div><div id="hNews"></div></div></div>`;
     const $ = id => el.querySelector("#" + id);
     let s, roster = [], timer = 0, next = null;
+    // the standings, last result and headlines don't need the season: start reading them now, alongside it
+    const standings = Promise.all([jolpica("current/driverStandings.json"), jolpica("current/constructorStandings.json"), jolpica("current/last/results.json")]);
+    const news = loadNews();
+    standings.catch(() => {});   // (if the season fails, nobody waits for these)
     try { [s, roster] = await Promise.all([currentSeason(), drivers().catch(() => [])]); }
     catch (e) { $("hHero").innerHTML = `<div class="card"><p class="note-line">Couldn't load the season. Check your connection and try again.</p></div>`; return; }
     if (!el.isConnected) return;
@@ -65,7 +69,7 @@ export default {
     const slow = setInterval(drawNow, 60000);
 
     // ---------- your driver and team (picked in Settings), the podium, the standings ----------
-    Promise.all([jolpica("current/driverStandings.json"), jolpica("current/constructorStandings.json"), jolpica("current/last/results.json")]).then(([ds, cs, last]) => {
+    standings.then(([ds, cs, last]) => {
       if (!el.isConnected) return;
       const dl = ds.MRData.StandingsTable.StandingsLists[0] || {}, cl = cs.MRData.StandingsTable.StandingsLists[0] || {};
       const dStand = dl.DriverStandings || [], cStand = cl.ConstructorStandings || [];
@@ -107,7 +111,7 @@ export default {
     }).catch(() => { if (el.isConnected) $("hStand").innerHTML = `<div class="card"><p class="note-line">Standings are unavailable right now.</p></div>`; });
 
     // ---------- headlines ----------
-    loadNews().then(n => {
+    news.then(n => {
       if (!el.isConnected) return;
       $("hNews").innerHTML = n && n.items.length ? `<section class="card"><h2 class="card-h"><span>Latest news</span><a class="more" href="#/news">More ${ICONS.chevron}</a></h2>
         <div class="rows">${n.items.slice(0, 6).map(i => `<a class="row hnews-row" href="${esc(i.link)}" target="_blank" rel="noopener"><span class="main"><b>${esc(i.title)}</b><small>${esc(i.source)} · ${ago(i.at)}</small></span>${ICONS.external}</a>`).join("")}</div></section>` : "";

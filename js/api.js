@@ -18,9 +18,10 @@ function saved(url, ttl) {   // a recent answer kept in the browser, so reopenin
   return null;
 }
 function save(url, v) {
-  try { const s = JSON.stringify({ t: Date.now(), v }); if (s.length < 400000) localStorage.setItem("f1c:" + url, s); } catch (e) { clearCache(); }
+  try { const s = JSON.stringify({ t: Date.now(), v }); if (s.length < 400000) localStorage.setItem("f1c:" + url, s); } catch (e) { clearSaved(); }
 }
-export function clearCache() { try { for (const k of Object.keys(localStorage)) if (k.startsWith("f1c:")) localStorage.removeItem(k); } catch (e) {} }
+function clearSaved() { try { for (const k of Object.keys(localStorage)) if (k.startsWith("f1c:")) localStorage.removeItem(k); } catch (e) {} }
+export function clearCache() { clearSaved(); try { caches.delete(DATA); } catch (e) {} }   // (Settings: the finished sessions too)
 
 // OpenF1: one request at a time, at most 3 a second and 28 a minute; "too many" means wait and try again
 const starts = [];
@@ -63,12 +64,24 @@ async function getOpenF1(url) {
   say("OpenF1", false);
   throw new Error("OpenF1 didn't answer");
 }
-// path like "laps?session_key=9999"; ttl (ms) keeps the answer in the browser that long
-export function of1(path, { ttl = 0 } = {}) {
+// a finished session's data never changes: kept for good in the browser's cache storage (room for a replay's laps and
+// positions, which are too big for localStorage), so a replay opened again loads at once. The last 250 answers are kept.
+const DATA = "f1data";
+async function stored(url) { try { const r = await (await caches.open(DATA)).match(url); return r ? r.json() : null; } catch (e) { return null; } }
+async function keepForGood(url, v) {
+  try {
+    const c = await caches.open(DATA); await c.put(url, new Response(JSON.stringify(v)));
+    const keys = await c.keys(); for (const k of keys.slice(0, Math.max(0, keys.length - 250))) await c.delete(k);   // oldest first
+  } catch (e) {}
+}
+// path like "laps?session_key=9999"; ttl (ms) keeps the answer in the browser that long; forever: a finished session's
+export function of1(path, { ttl = 0, forever = false } = {}) {
   const url = `${OPENF1}/${path}`;
   if (memory.has(url)) return memory.get(url);
   const kept = saved(url, ttl);
-  const p = kept ? Promise.resolve(kept) : getOpenF1(url).then(v => { if (ttl) save(url, v); return v; });
+  const p = kept ? Promise.resolve(kept)
+    : forever ? stored(url).then(v => v || getOpenF1(url).then(v => { keepForGood(url, v); return v; }))
+    : getOpenF1(url).then(v => { if (ttl) save(url, v); return v; });
   memory.set(url, p);
   p.catch(() => memory.delete(url));
   if (!ttl) setTimeout(() => memory.delete(url), 5 * 60000);   // live-ish data: ask again later
