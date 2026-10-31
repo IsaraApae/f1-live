@@ -1,7 +1,7 @@
 // Lap battle: pick a session and two drivers, then watch their laps race each other round the circuit (a canvas "film"),
 // compare the telemetry by distance, and save the film as a video to share.
 import { $, $$, esc, clamp, hex, slug, lapText, photo, dtagHtml, skeleton, ICONS } from "../util.js";
-import { of1 } from "../api.js";
+import { openF1Closed, of1 } from "../api.js";
 import { season, currentSeason, allSessions } from "../season.js";
 import { lapModel, Film, PRE, fmtLap, similar, videoType, startRecording } from "../battle-film.js";
 
@@ -17,6 +17,7 @@ const REC = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.5"/></svg>`;
 const LINK = `<svg viewBox="0 0 24 24"><path d="M9.9 15.5 8.5 14.1l5.6-5.6 1.4 1.4zM7.1 19.8a4 4 0 0 1-2.9-6.8l2.8-2.8 1.4 1.4-2.8 2.8a2 2 0 1 0 2.8 2.8l2.8-2.8 1.4 1.4-2.8 2.8a4 4 0 0 1-2.7 1.2zm9.9-6L15.6 12.4l2.8-2.8a2 2 0 1 0-2.8-2.8l-2.8 2.8L11.4 8.2l2.8-2.8a4 4 0 1 1 5.6 5.6z"/></svg>`;
 
 // ---------- small caches of our own (compact, so a few battles don't fill the browser's storage) ----------
+const PAUSED = "OpenF1, where lap battles get their data, pauses its free service during a live session. Come back about 30 minutes after it ends.";
 function kept(key, ttl) { try { const x = JSON.parse(localStorage.getItem(key)); if (x && Date.now() - x.t < ttl) return x.v; } catch (e) {} return null; }
 function keep(key, v) { try { localStorage.setItem(key, JSON.stringify({ t: Date.now(), v })); } catch (e) {} }
 function keepTel(key, v) {   // telemetry: keep the newest couple of dozen laps
@@ -197,7 +198,7 @@ export default {
         if (my !== S.tok || !live()) return;
         S.rounds = s.rounds;
         const r = doneRounds().pop();
-        if (!r) { renderPicker(); message(`No finished sessions in ${y} yet.`); clearBelow(); return; }
+        if (!r) { renderPicker(); message(openF1Closed() ? PAUSED : `No finished sessions in ${y} yet.`); clearBelow(); return; }
         chooseRound(r);
       } catch (e) { if (my === S.tok) failed(() => chooseYear(y)); }
     }
@@ -585,7 +586,7 @@ export default {
         }
         if (my !== S.tok || !live()) return;
         S.year = year; S.rounds = rounds;
-        if (!s) { renderPicker(); message("No finished sessions yet. Come back after the first session of the season."); clearBelow(); return; }
+        if (!s) { renderPicker(); message(openF1Closed() ? PAUSED : "No finished sessions yet. Come back after the first session of the season."); clearBelow(); return; }
         S.round = rounds.find(r => r.sessions.some(x => x.key === s.key));
         chooseSession(S.round.sessions.find(x => x.key === s.key), want);
       } catch (e) { console.error(e); if (my === S.tok && live()) { failed(start); pick.innerHTML = `<p class="note-line">The season couldn't load.</p>`; } }
