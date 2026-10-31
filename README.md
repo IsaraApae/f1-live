@@ -23,7 +23,7 @@ A free Formula 1 companion in the browser: live timing, the track on a real 3D m
 | Source | Used for |
 |---|---|
 | Formula 1's live timing (`livetiming.formula1.com`) | Live timing; the browser connects to it directly |
-| [OpenF1](https://openf1.org) | Replays, session times, telemetry, overtakes, pit stops, flags |
+| [OpenF1](https://openf1.org) | Replays, session times, telemetry, overtakes, pit stops, flags. Its free service pauses during a live session: the site then uses the last answers saved in the browser and Jolpica's calendar, without keeping pages waiting; replays and lap battles not saved in the browser come back about 30 minutes after the session |
 | [Jolpica](https://github.com/jolpica/jolpica-f1) | Calendar, standings and results |
 | [MultiViewer](https://api.multiviewer.app) | Circuit outlines and corner numbers |
 | [OpenFreeMap](https://openfreemap.org) (OpenStreetMap data) with [MapLibre](https://maplibre.org) | The real map under the track |

@@ -63,4 +63,23 @@ if (shell) for (const [, f] of shell[1].matchAll(/"([^"]+)"/g)) if (f !== "./" &
 
 for (const w of warnings) console.warn(`warning: ${w}`);
 if (problems.length) { console.error(problems.map(p => `✗ ${p}`).join("\n\n")); process.exit(1); }
-console.log(`OK: ${modules.length} modules and ${classic.length} classic scripts parse, ${views.length} route pages exist, manifest fine, live tracker right.`);
+// 6. a source that can't be reached (OpenF1 during a session looks like this to a browser) must not keep pages waiting: one
+// more try, then the last saved answer however old, and no more asking for a minute
+{
+  const kept = new Map([["f1c:https://api.openf1.org/v1/sessions?year=1", JSON.stringify({ t: 1, v: ["old"] })], ["f1c:https://api.jolpi.ca/ergast/f1/1.json?limit=100", JSON.stringify({ t: 1, v: ["old"] })]]);
+  let asked = 0;
+  globalThis.localStorage = { getItem: k => kept.has(k) ? kept.get(k) : null, setItem: (k, v) => kept.set(k, v), removeItem: k => kept.delete(k) };
+  globalThis.fetch = async () => { asked++; throw new TypeError("Failed to fetch"); };
+  const { of1, jolpica, openF1Closed } = await import(new URL("../js/api.js", import.meta.url));
+  const t0 = Date.now(), failed = p => p.then(() => false, () => true);
+  const a = await of1("sessions?year=1", { ttl: 1000 }), j = await jolpica("1.json", { ttl: 1000 });
+  if (a[0] !== "old" || j[0] !== "old") problems.push("js/api.js: the last saved answer isn't used when a source can't be reached");
+  if (!openF1Closed()) problems.push("js/api.js: OpenF1 isn't treated as closed when it can't be reached");
+  const before = asked;
+  if (!(await failed(of1("meetings?year=1"))) || !(await failed(jolpica("2.json")))) problems.push("js/api.js: nothing saved and no source, but no failure");
+  if (asked !== before) problems.push("js/api.js: still asking a source that can't be reached");
+  if (Date.now() - t0 > 5000) problems.push(`js/api.js: pages waited ${Date.now() - t0} ms for a source that can't be reached`);
+  delete globalThis.localStorage; delete globalThis.fetch;
+}
+console.log(`OK: ${modules.length} modules and ${classic.length} classic scripts parse, ${views.length} route pages exist, manifest fine, live tracker right, unreachable sources don't hold pages up.`);
+process.exit(0);   // (js/api.js's cache timers would otherwise keep this running for minutes)

@@ -44,18 +44,28 @@ function slot() {
   return run;
 }
 // OpenF1's free data is between sessions: while one is live it refuses free requests (401/403). That isn't "busy": stop
-// asking for a few minutes, without the banner (the live timing itself comes from F1's feed, not OpenF1)
+// asking for a few minutes, without the banner (the live timing itself comes from F1's feed, not OpenF1). A browser can also
+// see a refusal only as a failed request, with no answer to read: after one more try that's treated the same way, for a
+// minute, so no page waits for OpenF1 when it can't answer. Kept across reloads.
 let closedUntil = 0;
+try { closedUntil = +localStorage.getItem("f1.of1closed") || 0; } catch (e) {}
+function closeOpenF1(ms) {
+  closedUntil = Date.now() + ms; say("OpenF1", false);
+  try { localStorage.setItem("f1.of1closed", closedUntil); } catch (e) {}
+  throw new Error("OpenF1 is closed during a live session");
+}
+export const openF1Closed = () => Date.now() < closedUntil;
 async function getOpenF1(url) {
   for (let i = 0, waited = 0; waited < 120000; i++) {
     if (Date.now() < closedUntil) throw new Error("OpenF1 is closed during a live session");
     await slot();
     let r; try { r = await fetch(url); } catch (e) { r = null; }
+    if (!r) { if (i) closeOpenF1(60000); await sleep(1500); continue; }
     if (r && r.ok) { say("OpenF1", false); return r.json(); }
     if (r && (r.status === 404 || r.status === 422)) return [];
     const why = r && !r.ok && r.status !== 429 ? await r.text().catch(() => "") : "";
     if (r && (r.status === 401 || r.status === 403 || /live|sponsor|subscri|authenticat|token/i.test(why))) {
-      closedUntil = Date.now() + 5 * 60000; say("OpenF1", false); throw new Error("OpenF1 is closed during a live session");
+      closeOpenF1(5 * 60000);
     }
     const pause = r && r.status === 429 ? Math.min(20000, 1000 * (+r.headers.get("Retry-After") || 8)) : 2000 * (i + 1);
     say("OpenF1", true);
@@ -63,6 +73,14 @@ async function getOpenF1(url) {
   }
   say("OpenF1", false);
   throw new Error("OpenF1 didn't answer");
+}
+// a source that can't answer: the last answer kept in the browser, however old, is better than an empty page (and it isn't
+// remembered for this visit, so the next page asks again)
+function lastCopy(url, e) {
+  const old = saved(url, Infinity);
+  if (old === null) throw e;
+  setTimeout(() => memory.delete(url));
+  return old;
 }
 // a finished session's data never changes: kept for good in the browser's cache storage (room for a replay's laps and
 // positions, which are too big for localStorage), so a replay opened again loads at once. The last 250 answers are kept.
@@ -81,16 +99,19 @@ export function of1(path, { ttl = 0, forever = false } = {}) {
   const kept = saved(url, ttl);
   const p = kept ? Promise.resolve(kept)
     : forever ? stored(url).then(v => v || getOpenF1(url).then(v => { keepForGood(url, v); return v; }))
-    : getOpenF1(url).then(v => { if (ttl) save(url, v); return v; });
+    : getOpenF1(url).then(v => { if (ttl) save(url, v); return v; }).catch(e => lastCopy(url, e));
   memory.set(url, p);
   p.catch(() => memory.delete(url));
   if (!ttl) setTimeout(() => memory.delete(url), 5 * 60000);   // live-ish data: ask again later
   return p;
 }
 
+const down = {};   // source -> until when it's not asked: it can't be reached, so no page should wait for it
 async function getJSON(url, source) {
   for (let i = 0; i < 4; i++) {
+    if (Date.now() < (down[source] || 0)) throw new Error(`${source} can't be reached`);
     let r; try { r = await fetch(url); } catch (e) { r = null; }
+    if (!r) { if (i) down[source] = Date.now() + 60000; else await sleep(1500); continue; }
     if (r && r.ok) { say(source, false); return r.json(); }
     if (r && r.status === 404) return null;
     say(source, true);
@@ -104,7 +125,7 @@ export function jolpica(path, { ttl = 10 * 60000 } = {}) {
   const url = `${JOLPICA}/${path}${path.includes("?") ? "&" : "?"}limit=100`;
   if (memory.has(url)) return memory.get(url);
   const kept = saved(url, ttl);
-  const p = kept ? Promise.resolve(kept) : getJSON(url, "Jolpica").then(v => { save(url, v); return v; });
+  const p = kept ? Promise.resolve(kept) : getJSON(url, "Jolpica").then(v => { save(url, v); return v; }).catch(e => lastCopy(url, e));
   memory.set(url, p);
   p.catch(() => memory.delete(url));
   setTimeout(() => memory.delete(url), ttl);
