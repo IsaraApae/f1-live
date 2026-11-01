@@ -11,6 +11,9 @@
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://api.openf1.org" crossorigin>
+<link rel="preconnect" href="https://api.jolpi.ca" crossorigin>
+<link rel="preconnect" href="https://media.formula1.com">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@600;700;900&display=swap">
@@ -28,6 +31,14 @@
 <link rel="stylesheet" href="css/standings.css">
 <link rel="stylesheet" href="css/battle.css">
 <link rel="stylesheet" href="css/news.css">
+<!-- fetch the modules together, not one layer of imports at a time -->
+<link rel="modulepreload" href="js/main.js">
+<link rel="modulepreload" href="js/util.js">
+<link rel="modulepreload" href="js/api.js">
+<link rel="modulepreload" href="js/cutout.js">
+<link rel="modulepreload" href="js/season.js">
+<link rel="modulepreload" href="js/news.js">
+<link rel="modulepreload" href="js/views/home.js">
 <script type="module" src="js/main.js"></script>
 </head>
 <body>
