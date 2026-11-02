@@ -14,10 +14,12 @@ const say = (source, waiting) => busy.dispatchEvent(new CustomEvent("busy", { de
 const memory = new Map();   // url -> promise of the parsed answer
 function saved(url, ttl) {   // a recent answer kept in the browser, so reopening the site is quick
   if (!ttl) return null;
-  try { const x = JSON.parse(localStorage.getItem("f1c:" + url)); if (x && Date.now() - x.t < ttl) return x.v; } catch (e) {}
+  try { const x = JSON.parse(localStorage.getItem("f1c:" + url)); if (x && Date.now() - x.t < ttl && !isEmpty(x.v)) return x.v; } catch (e) {}
   return null;
 }
+const isEmpty = v => Array.isArray(v) && !v.length;   // "nothing yet" is never kept: the next ask tries again
 function save(url, v) {
+  if (isEmpty(v)) return;
   try { const s = JSON.stringify({ t: Date.now(), v }); if (s.length < 400000) localStorage.setItem("f1c:" + url, s); } catch (e) { clearSaved(); }
 }
 function clearSaved() { try { for (const k of Object.keys(localStorage)) if (k.startsWith("f1c:")) localStorage.removeItem(k); } catch (e) {} }
@@ -101,7 +103,7 @@ export function of1(path, { ttl = 0, forever = false } = {}) {
     : forever ? stored(url).then(v => v || getOpenF1(url).then(v => { keepForGood(url, v); return v; }))
     : getOpenF1(url).then(v => { if (ttl) save(url, v); return v; }).catch(e => lastCopy(url, e));
   memory.set(url, p);
-  p.catch(() => memory.delete(url));
+  p.then(v => { if (isEmpty(v)) memory.delete(url); }, () => memory.delete(url));
   if (!ttl) setTimeout(() => memory.delete(url), 5 * 60000);   // live-ish data: ask again later
   return p;
 }

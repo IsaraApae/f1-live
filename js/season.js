@@ -64,6 +64,23 @@ export async function currentSeason() {
   return s;
 }
 
+// When OpenF1 can't be reached (closed during a session, or blocked on this network): the same list from Jolpica's standings,
+// with F1's team names, so a picked team stays the same either way
+const TEAMS = { alpine: ["Alpine", "#0093cc"], aston_martin: ["Aston Martin", "#229971"], audi: ["Audi", "#f50537"], cadillac: ["Cadillac", "#909090"],
+                ferrari: ["Ferrari", "#e8002d"], haas: ["Haas F1 Team", "#b6babd"], mclaren: ["McLaren", "#ff8000"], mercedes: ["Mercedes", "#27f4d2"],
+                rb: ["Racing Bulls", "#6692ff"], red_bull: ["Red Bull Racing", "#3671c6"], williams: ["Williams", "#64c4ff"] };
+async function standingsRoster(year) {
+  const js = await jolpica(`${year}/driverStandings.json`);
+  const list = ((js && js.MRData.StandingsTable.StandingsLists[0]) || {}).DriverStandings || [];
+  if (!list.length) throw new Error("No drivers from OpenF1 or Jolpica");
+  return list.map(x => {
+    const c = x.Constructors.slice(-1)[0] || {}, [team, colour] = TEAMS[c.constructorId] || [fixText(c.name || ""), "#777777"];
+    const first = fixText(x.Driver.givenName), last = fixText(x.Driver.familyName);
+    return { num: x.Driver.permanentNumber || "", tla: x.Driver.code, first, last, full: `${first} ${last}`, team, colour, headshot: null, year,
+             HeadshotUrl: null, FirstName: first, LastName: last, TeamName: team };
+  });
+}
+
 // a season's drivers as of its latest race or qualifying: number, three-letter name, names, team (that year's name),
 // team colour, photo link. Past seasons: their last race, so photos, logos and cars are that year's.
 const rosters = {};
@@ -71,9 +88,12 @@ export function drivers(year = new Date().getFullYear()) {
   return rosters[year] = rosters[year] || (async () => {
     const s = await season(year), past = year < new Date().getFullYear();
     const done = allSessions(s.rounds).filter(x => x.key && x.end < Date.now() && (x.kind === "race" || x.kind === "q")).sort((a, b) => b.end - a.end)[0];
-    let list = done ? await of1(`drivers?session_key=${done.key}`, { ttl: past ? 30 * 86400000 : 6 * 3600000 }) : [];
-    if (!list.length && !past) list = await of1(`drivers?session_key=latest`, { ttl: 3600000 });
-    if (!list.length) throw new Error("No drivers from OpenF1");   // not kept, so the next ask tries again
+    let list = [];
+    try {
+      list = done ? await of1(`drivers?session_key=${done.key}`, { ttl: past ? 30 * 86400000 : 6 * 3600000 }) : [];
+      if (!list.length && !past) list = await of1(`drivers?session_key=latest`, { ttl: 3600000 });
+    } catch (e) { console.warn("Drivers from Jolpica instead:", e); }
+    if (!list.length) return standingsRoster(year);
     // OpenF1 can blank a stand-in's name and team in a session (Hirakawa, Mexico 2026's race): the weekend's other sessions have them
     if (list.some(d => !d.team_name)) {
       const weekend = await of1(`drivers?meeting_key=${list[0].meeting_key}`, { ttl: past ? 30 * 86400000 : 6 * 3600000 }).catch(() => []);
