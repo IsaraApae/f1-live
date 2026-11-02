@@ -22,7 +22,7 @@ export default {
         <div class="toggles">
           <label><span>Driver</span><select class="pick" id="favD"><option value="">None</option></select></label>
           <label><span>Team</span><select class="pick" id="favT"><option value="">None</option></select></label></div>
-        <p class="note-line small" id="favMsg" hidden>Loading the drivers failed: OpenF1 isn't answering (it closes during live sessions). <button class="btn" id="favRetry" type="button">Try again</button></p></div></section>
+        <p class="note-line small" id="favMsg" hidden>Couldn't load the drivers: neither OpenF1 nor Jolpica is answering. Check your connection. <button class="btn" id="favRetry" type="button">Try again</button></p></div></section>
       <section class="card"><h2 class="card-h">Alerts</h2><div class="card-b">
         <div class="toggles">
           <label><span>Race control pop-ups<small>Safety car, red flag, penalties and investigations pop up while you watch (live and replays)</small></span>
