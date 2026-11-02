@@ -10,12 +10,13 @@ const ROUTES = [
   [/^\/?$/, "home"],
   [/^\/live$/, "live"],
   [/^\/calendar$/, "calendar"],
-  [/^\/calendar\/(\d{4})\/(\d+)$/, "weekend"],
+  [/^\/calendar\/(\d{4})\/(\d+)(?:\/(\d+))?$/, "weekend"],   // …/KEY: that session's full result, scrolled to
   [/^\/standings(?:\/(drivers|teams))?$/, "standings"],
   [/^\/driver\/([\w-]+)$/, "driver"],
   [/^\/team\/([\w-]+)$/, "team"],
   [/^\/replay$/, "replay"],
   [/^\/replay\/(\d+)$/, "replay"],
+  [/^\/result\/(\d+)$/, "result"],
   [/^\/battle(?:\/(\d+)(?:\/(\d+)\/(\d+))?)?$/, "battle"],
   [/^\/news$/, "news"],
   [/^\/settings$/, "settings"]
@@ -47,9 +48,10 @@ const app = {
 
 let current = null, token = 0, routed = 0;
 async function route() {
-  // links from the LINE cards: ?replay=KEY opens that replay, ?live the Live tab
+  // links from the LINE cards: ?replay=KEY opens that replay, ?result=KEY that session's weekend with its results, ?live the Live tab
   const q = new URLSearchParams(location.search), keep = q.get("feed") ? `?feed=${encodeURIComponent(q.get("feed"))}` : "";
   if (q.get("replay") && !location.hash) history.replaceState(null, "", location.pathname + keep + `#/replay/${q.get("replay")}`);
+  else if (q.get("result") && !location.hash) history.replaceState(null, "", location.pathname + keep + `#/result/${q.get("result")}`);
   else if (q.has("live") && !location.hash) history.replaceState(null, "", location.pathname + keep + "#/live");
   cameFrom = routed++ > 0;   // an earlier page of this site is behind us in the history
   const path = location.hash.replace(/^#/, "") || "/";

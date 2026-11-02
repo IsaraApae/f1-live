@@ -60,7 +60,7 @@ const notFound = (year, n, count) => `<section class="card wkd-404"><div class="
 export default {
   title: "Weekend",
   tab: "calendar",
-  async mount(el, [y, n], app) {
+  async mount(el, [y, n, focus], app) {
     app.setBack("#/calendar");
     const year = +y, roundNo = +n;
     el.innerHTML = `<section class="hero">${skeleton(4)}</section><div class="card">${skeleton(6)}</div>`;
@@ -77,6 +77,16 @@ export default {
     const open = new Set(), all = new Set();
     // every finished session's results straight away (a weekend has at most seven, well within OpenF1's 30 requests a minute)
     for (const x of S.filter(x => x.key && phase(x, Date.now()) === "done")) open.add(x.key);
+    if (focus) {   // opened for one session's full result ("Full result" on a LINE card): every driver, scrolled to once it's shown
+      all.add(+focus);
+      (async () => {
+        for (let i = 0; i < 60 && el.isConnected; i++) {
+          const box = el.querySelector(`[data-res="${+focus}"]`), g = got[+focus];
+          if (box && g && !g.busy) { const card = box.parentElement || box; card.style.scrollMarginTop = "72px"; card.scrollIntoView({ block: "start" }); return; }
+          await new Promise(ok => setTimeout(ok, 250));
+        }
+      })();
+    }
     const podiumKey = (S.find(x => x.kind === "race" && x.key) || {}).key;
     let fc = null, timer = 0;
 
