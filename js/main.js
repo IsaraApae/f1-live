@@ -111,4 +111,9 @@ export function setTheme(pick) {
 setTheme(store.get("f1.theme", "dark"));
 
 // install as an app (and work offline for pages already seen)
-if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  // a new release took over: load it now instead of running the old code until the next visit (not in the middle of a session or a film)
+  const updating = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener("controllerchange", () => { if (updating && !/^#\/(live|replay|battle)/.test(location.hash)) location.reload(); });
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}

@@ -93,7 +93,7 @@ export const teamCar = (team, year = new Date().getFullYear(), w = 640) => {
 };
 // both versions of a team logo: the dark-mode one shows in dark mode
 export const logoPair = (team, cls = "tl", year = new Date().getFullYear()) =>
-  `<img class="${cls} lg-light" src="${esc(teamLogo(team, false, year))}" alt="" onerror="this.remove()"><img class="${cls} lg-dark" src="${esc(teamLogo(team, true, year))}" alt="" onerror="this.remove()">`;
+  `<img class="${cls} lg-light" src="${esc(teamLogo(team, false, year))}" alt="" loading="lazy" onerror="this.remove()"><img class="${cls} lg-dark" src="${esc(teamLogo(team, true, year))}" alt="" loading="lazy" onerror="this.remove()">`;
 
 // a driver tag: car number on the team colour, then the three-letter name
 export const dtagHtml = (num, tla, colour, small) =>
