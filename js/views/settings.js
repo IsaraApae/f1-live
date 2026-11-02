@@ -22,7 +22,7 @@ export default {
         <div class="toggles">
           <label><span>Driver</span><select class="pick" id="favD"><option value="">None</option></select></label>
           <label><span>Team</span><select class="pick" id="favT"><option value="">None</option></select></label></div>
-        <p class="note-line small" id="favMsg" hidden>Couldn't load the drivers: neither OpenF1 nor Jolpica is answering. Check your connection. <button class="btn" id="favRetry" type="button">Try again</button></p></div></section>
+        <p class="note-line small" id="favMsg" hidden>Couldn't load the drivers. <button class="btn" id="favRetry" type="button">Try again</button><small id="favWhy" style="display:block;margin-top:8px;overflow-wrap:anywhere"></small></p></div></section>
       <section class="card"><h2 class="card-h">Alerts</h2><div class="card-b">
         <div class="toggles">
           <label><span>Race control pop-ups<small>Safety car, red flag, penalties and investigations pop up while you watch (live and replays)</small></span>
@@ -49,7 +49,12 @@ export default {
       $("favT").innerHTML += teams.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join("");
       $("favD").value = store.get("f1.favDriver", "") || ""; $("favT").value = store.get("f1.favTeam", "") || "";
       $("favMsg").hidden = true;
-    }).catch(e => { console.error(e); if (el.isConnected) $("favMsg").hidden = false; });   // say so: only "None" in the lists looks broken
+    }).catch(e => {   // say so, and why: only "None" in the lists looks broken
+      console.error(e);
+      if (!el.isConnected) return;
+      $("favWhy").textContent = `${e.name === "Error" ? "" : `${e.name}: `}${e.message}${e.name === "Error" ? "" : ` (${String(e.stack || "").split("\n")[0].slice(-70)})`}`;
+      $("favMsg").hidden = false;
+    });
     loadPicks();
     $("favRetry").addEventListener("click", loadPicks);
     $("favD").addEventListener("change", e => { store.set("f1.favDriver", e.target.value || null); app.toast(`<div>${e.target.value ? "Your driver is on the Home page." : "Driver removed from Home."}</div>`, { ms: 2500 }); });
