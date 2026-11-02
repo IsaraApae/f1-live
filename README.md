@@ -33,6 +33,8 @@ A free Formula 1 companion in the browser: live timing, the track on a real 3D m
 | **News** | Headlines from F1 publishers, linking to their articles. |
 | **Settings** | Dark, light or device appearance, 12- or 24-hour clock, your driver and team, alerts. |
 
+**Results after the race.** Jolpica can keep a race's result from before the stewards' post-race penalties for days (Mexico 2026: Hirakawa 13th with no points, officially 10th with 1). For this season's latest race, `js/final.js` puts what Jolpica says right from OpenF1's result: the race's positions and points, and the drivers' and teams' points, wins and order on Home, Standings and the driver and team pages. If OpenF1 can't be reached, Jolpica's figures are shown as they are. `?result=KEY` (the LINE cards' **Full result**) opens that session's weekend page with every driver, scrolled to it.
+
 ## Where the data comes from
 
 | Source | Used for |

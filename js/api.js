@@ -3,6 +3,7 @@
 //   Jolpica (api.jolpi.ca):   the calendar, standings and results (Ergast's successor)
 //   Open-Meteo:               weather forecasts at the circuit
 import { sleep } from "./util.js";
+import { fixFinal } from "./final.js";
 
 export const OPENF1 = "https://api.openf1.org/v1";
 export const JOLPICA = "https://api.jolpi.ca/ergast/f1";
@@ -122,8 +123,13 @@ async function getJSON(url, source) {
   say(source, false);
   throw new Error(`${source} didn't answer`);
 }
-// path like "2026/driverStandings.json"
-export function jolpica(path, { ttl = 10 * 60000 } = {}) {
+// path like "2026/driverStandings.json"; the latest race's result and the standings after it as officially final
+// (penalties after the race included: final.js)
+export function jolpica(path, opts) {
+  return jolpicaRaw(path, opts).then(v => fixFinal(path, v, { raw: jolpicaRaw, of1 }));
+}
+// Jolpica's answer exactly as it gave it
+function jolpicaRaw(path, { ttl = 10 * 60000 } = {}) {
   const url = `${JOLPICA}/${path}${path.includes("?") ? "&" : "?"}limit=100`;
   if (memory.has(url)) return memory.get(url);
   const kept = saved(url, ttl);
