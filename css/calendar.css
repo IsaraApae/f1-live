@@ -124,7 +124,9 @@
 .wkd-next small { font-weight: 600; }
 .wkd-now .wkd-cd-l { text-transform: none; letter-spacing: 0; font-size: 15px; font-weight: 600; color: var(--text); }
 .wkd-pod { display: grid; gap: 8px; }
-.wkd-pods { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.wkd-pods { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-items: end; }
+.wkd-pd.p1 { padding-top: 22px; padding-bottom: 16px; }
+.wkd-pd.p1 .wkd-face { width: 68px; height: 68px; }
 .wkd-pd { display: grid; justify-items: start; gap: 5px; padding: 10px 12px; min-width: 0; border-radius: 12px;
           background: color-mix(in srgb, var(--tc) 13%, var(--panel)); border: 1px solid color-mix(in srgb, var(--tc) 40%, var(--line)); }
 .wkd-pd .p { font-family: var(--display); font-weight: 900; font-size: 22px; line-height: 1; }

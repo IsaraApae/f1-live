@@ -1,6 +1,6 @@
 // Home: what's on now or next (with a countdown and the forecast), the weekend's sessions, your driver and team,
 // the last race's podium, the championship's top five and the latest headlines.
-import { esc, store, ICONS, fmtWhen, fmtTime, fmtDay, fmtRange, countdownHtml, photo, logoPair, tagVars, skeleton, tzName, ago, fixText } from "../util.js";
+import { esc, store, ICONS, fmtWhen, fmtTime, fmtDay, fmtRange, countdownHtml, photo, logoPair, tagVars, skeleton, tzName, ago, fixText, podiumOrder } from "../util.js";
 import { jolpica, forecast, forecastFor } from "../api.js";
 import { currentSeason, drivers, liveSession, nextSession, allSessions } from "../season.js";
 import { loadNews } from "../news.js";
@@ -96,8 +96,8 @@ export default {
       if (race) {
         const r = s.rounds.find(x => x.round === +race.round), key = r && (r.sessions.find(x => x.kind === "race") || {}).key;
         $("hPodium").innerHTML = `<section class="card"><h2 class="card-h"><span>Last race · ${esc(fixText(race.raceName).replace(/ Grand Prix$/, " GP"))}</span>${key ? `<a class="more" href="#/replay/${key}">Replay ${ICONS.chevron}</a>` : ""}</h2>
-          <div class="podium">${race.Results.slice(0, 3).map(x => { const d = me(x);
-            return `<a href="#/driver/${esc(x.Driver.driverId)}" style="--tc:${d.colour}"><span class="p">P${esc(x.position)}</span><img class="face" src="${esc(photo(d, 112))}" alt="" style="background:${d.colour}">
+          <div class="podium">${podiumOrder(race.Results.slice(0, 3)).map(x => { const d = me(x);
+            return `<a${x.position === "1" ? ` class="p1"` : ""} href="#/driver/${esc(x.Driver.driverId)}" style="--tc:${d.colour}"><span class="p">P${esc(x.position)}</span><img class="face" src="${esc(photo(d, 112))}" alt="" style="background:${d.colour}">
               <b>${esc(fixText(x.Driver.familyName))}</b><small>${x.position === "1" ? esc((x.Time || {}).time || "Winner") : esc((x.Time || {}).time || x.status)}</small></a>`; }).join("")}</div></section>`;
       }
       $("hStand").innerHTML = `<section class="card mini-stand"><h2 class="card-h"><span>Drivers' championship <small>after round ${esc(dl.round || "")}</small></span><a class="more" href="#/standings">All ${ICONS.chevron}</a></h2>

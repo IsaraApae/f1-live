@@ -245,12 +245,13 @@ img[src$="#invert"], img.inv { filter: brightness(0) invert(1); }
 .fav .big { text-align: right; font-family: var(--display); }
 .fav .big b { font-size: 28px; } .fav .big small { display: block; }
 .podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--line); }
-.podium > a { background: var(--panel); padding: 12px; display: grid; justify-items: center; gap: 6px; text-align: center; min-width: 0; }
+.podium > a { background: var(--panel); padding: 12px; display: grid; justify-items: center; align-content: end; gap: 6px; text-align: center; min-width: 0; }
 .podium .face { width: 56px; height: 56px; }
 .podium b { font-weight: 900; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .podium small { color: var(--dim); font-weight: 700; font-size: 11.5px; }
 .podium .p { font-family: var(--display); font-weight: 900; font-size: 18px; }
-.podium > a:first-child .p { color: var(--red); }
+.podium > a.p1 .p { color: var(--red); font-size: 22px; }
+.podium > a.p1 .face { width: 72px; height: 72px; }
 .home-hero .hero-wx { margin-top: 10px; }
 .home-hero .tz { margin: 8px 2px 0; color: var(--dim); font-size: 11px; font-weight: 600; text-align: right; }
 .live-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 14px 16px; border-color: color-mix(in srgb, var(--red) 50%, var(--line));
