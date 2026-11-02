@@ -16,7 +16,8 @@
 <link rel="preconnect" href="https://media.formula1.com">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@600;700;900&display=swap">
+<!-- the font never holds up the first paint: the page draws in the system font if Google Fonts is slow -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@600;700;900&display=swap" media="print" onload="this.media='all'">
 <script>
   // appearance before the page draws, so it never flashes the wrong colours
   (function () {
