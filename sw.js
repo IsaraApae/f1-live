@@ -14,11 +14,13 @@ const SHELL = [
 const STATIC = /\.(?:js|css|svg|png|webmanifest|woff2?)$/;
 
 self.addEventListener("install", e => {
-  // "reload" skips the browser's HTTP cache, so a release never stores yesterday's files; a missing file is skipped, not fatal
+  // each file from an address only this release asks for, so no browser can hand back yesterday's copy (Safari can ignore
+  // cache: "reload", and kept an old season.js under a new release); a missing file is skipped, not fatal
   e.waitUntil(caches.open(CACHE)
-    .then(c => Promise.all(SHELL.map(u => c.add(new Request(u, { cache: "reload" })).catch(() => {}))))
+    .then(c => Promise.all(SHELL.map(u => fetch(fresh(u), { cache: "no-store" }).then(r => r.ok && c.put(u, r)).catch(() => {}))))
     .then(() => self.skipWaiting()));
 });
+function fresh(u) { const url = new URL(u, self.location.href); url.searchParams.set("v", VERSION); return url.href; }
 
 self.addEventListener("activate", e => {
   // only our own old caches: other sites on the same github.io origin keep theirs
@@ -37,7 +39,7 @@ self.addEventListener("fetch", e => {
 async function cacheFirst(req) {
   const cache = await caches.open(CACHE), hit = await cache.match(req);
   if (hit) return hit;
-  const res = await fetch(req);
+  const res = await fetch(fresh(req.url), { cache: "no-store" });   // this release's file, never an older stored copy
   if (res.ok) cache.put(req, res.clone()).catch(() => {});
   return res;
 }

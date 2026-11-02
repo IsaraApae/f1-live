@@ -41,8 +41,9 @@ export default {
     press($("clock"), "c", store.get("f1.clock", "24"));
     $("clock").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; store.set("f1.clock", b.dataset.c); press($("clock"), "c", b.dataset.c); });
 
-    const loadPicks = () => drivers().then(list => {
+    const loadPicks = () => drivers().then(all => {
       if (!el.isConnected) return;
+      const list = all.filter(d => d.tla && d.team && d.first != null && d.last != null);   // a blank record (a stand-in's) never breaks the lists
       // A to Z by the name as it reads in the list (first name first)
       const sorted = list.slice().sort((a, b) => `${a.first} ${a.last}`.localeCompare(`${b.first} ${b.last}`)), teams = [...new Set(list.map(d => d.team))].sort((a, b) => a.localeCompare(b));
       $("favD").innerHTML += sorted.map(d => `<option value="${esc(d.tla)}">${esc(d.first)} ${esc(d.last)} · ${esc(d.team)}</option>`).join("");
