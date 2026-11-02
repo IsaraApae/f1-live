@@ -13,6 +13,9 @@ export const store = {
   set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
 };
 
+// the top three as they stand on a real podium: second, the winner in the middle, third
+export const podiumOrder = top => top.length === 3 ? [top[1], top[0], top[2]] : top;
+
 // ---------- time, always in the viewer's own time zone ----------
 const hour12 = () => store.get("f1.clock", "24") === "12";
 export const fmtTime = t => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: hour12() });

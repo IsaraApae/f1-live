@@ -1,6 +1,6 @@
 // One Grand Prix weekend: where and when, every session in the viewer's time zone with a live countdown, the forecast
 // at the circuit, and for finished sessions the results, the track conditions and a link to the replay.
-import { esc, fmtTime, fmtDay, fmtRange, tzName, countdown, countdownHtml, dtagHtml, hex, lapText, ICONS, skeleton, photo } from "../util.js";
+import { esc, fmtTime, fmtDay, fmtRange, tzName, countdown, countdownHtml, dtagHtml, hex, lapText, ICONS, skeleton, photo, podiumOrder } from "../util.js";
 import { of1, forecast, forecastFor } from "../api.js";
 import { season } from "../season.js";
 import { shortName, wxHtml, flagImg } from "../calendar-ui.js";
@@ -84,7 +84,7 @@ export default {
     let people = null;
     const names = () => people = people || (r.meetingKey ? of1(`drivers?meeting_key=${r.meetingKey}`, { ttl: ttlFor(r.end) }) : Promise.resolve([])).then(list => {
       const by = new Map();
-      for (const d of list) { by.set(`${d.session_key}:${d.driver_number}`, d); by.set(d.driver_number, d); }
+      for (const d of list) if (d.last_name) { by.set(`${d.session_key}:${d.driver_number}`, d); by.set(d.driver_number, d); }   // a blank record: his record from another session
       return (key, no) => by.get(`${key}:${no}`) || by.get(no) || null;
     }).catch(() => { people = null; return () => null; });
 
@@ -145,9 +145,9 @@ export default {
       if (!g || g.busy) return `<small class="wkd-lbl">Podium</small>${skeleton(1)}`;
       if (g.err || !g.res.length) return "";
       const top = [...g.res].sort(byPos).filter(e => num(e.position)).slice(0, 3);
-      return `<small class="wkd-lbl">Podium</small><div class="wkd-pods">${top.map(e => {
+      return `<small class="wkd-lbl">Podium</small><div class="wkd-pods">${podiumOrder(top).map(e => {
         const d = g.names(podiumKey, e.driver_number) || {}, c = hex(d.team_colour);
-        return `<div class="wkd-pd" style="--tc:${esc(c)}"><span class="p">${e.position}</span>${d.last_name ? pic(d, 112, c) : ""}${dtagHtml(e.driver_number, d.name_acronym, c, true)}
+        return `<div class="wkd-pd${+e.position === 1 ? " p1" : ""}" style="--tc:${esc(c)}"><span class="p">${e.position}</span>${d.last_name ? pic(d, 112, c) : ""}${dtagHtml(e.driver_number, d.name_acronym, c, true)}
           <b>${esc(d.last_name || `Car ${e.driver_number}`)}</b><small>${esc(d.team_name || "")}</small></div>`;
       }).join("")}</div>`;
     }

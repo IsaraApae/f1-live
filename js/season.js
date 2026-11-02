@@ -73,6 +73,11 @@ export function drivers(year = new Date().getFullYear()) {
     const done = allSessions(s.rounds).filter(x => x.key && x.end < Date.now() && (x.kind === "race" || x.kind === "q")).sort((a, b) => b.end - a.end)[0];
     let list = done ? await of1(`drivers?session_key=${done.key}`, { ttl: past ? 30 * 86400000 : 6 * 3600000 }) : [];
     if (!list.length && !past) list = await of1(`drivers?session_key=latest`, { ttl: 3600000 });
+    // OpenF1 can blank a stand-in's name and team in a session (Hirakawa, Mexico 2026's race): the weekend's other sessions have them
+    if (list.some(d => !d.team_name)) {
+      const weekend = await of1(`drivers?meeting_key=${list[0].meeting_key}`, { ttl: past ? 30 * 86400000 : 6 * 3600000 }).catch(() => []);
+      list = list.map(d => d.team_name ? d : weekend.find(x => x.driver_number === d.driver_number && x.team_name) || d).filter(d => d.team_name);
+    }
     return list.map(d => ({
       num: String(d.driver_number), tla: d.name_acronym, first: d.first_name, last: d.last_name, full: d.full_name,
       team: d.team_name, colour: hex(d.team_colour), headshot: d.headshot_url, year: s.year,
