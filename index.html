@@ -35,14 +35,21 @@
     else if (/^#\/live$/.test(h) || (!h && q.has("live"))) files = ["views/live.js"].concat(timing);
     else if (/^#\/calendar\/\d{4}\/\d+/.test(h)) files = ["views/weekend.js", "calendar-ui.js"];
     files.forEach(function (f) { var l = document.createElement("link"); l.rel = "modulepreload"; l.href = "js/" + f; document.head.appendChild(l); });
+    // and the page's own stylesheet, at full speed rather than the low priority the page styles below get (only a head start:
+    // their data-pages decide which page uses which)
+    var page = h ? (/^#\/(\w+)/.exec(h) || [])[1] : q.get("replay") ? "replay" : q.get("result") ? "result" : q.has("live") ? "live" : "";
+    var css = { live: "timing", replay: "timing", calendar: "calendar", result: "calendar", standings: "standings", driver: "standings", team: "standings", battle: "battle", news: "news" }[page];
+    if (css) { var l = document.createElement("link"); l.rel = "preload"; l.as = "style"; l.href = "css/" + css + ".css"; document.head.appendChild(l); }
   })();
 </script>
 <link rel="stylesheet" href="css/app.css">
-<link rel="stylesheet" href="css/timing.css">
-<link rel="stylesheet" href="css/calendar.css">
-<link rel="stylesheet" href="css/standings.css">
-<link rel="stylesheet" href="css/battle.css">
-<link rel="stylesheet" href="css/news.css">
+<!-- each page's own styles: downloaded in the background without holding up the first paint (media="print"), and switched on
+     by main.js before a page in data-pages is first drawn. They stay in this order, so whichever are on, the same rule wins. -->
+<link rel="stylesheet" href="css/timing.css" media="print" data-pages="live replay" onload="this.dataset.ready=1" onerror="this.dataset.ready=1">
+<link rel="stylesheet" href="css/calendar.css" media="print" data-pages="calendar weekend result" onload="this.dataset.ready=1" onerror="this.dataset.ready=1">
+<link rel="stylesheet" href="css/standings.css" media="print" data-pages="standings driver team" onload="this.dataset.ready=1" onerror="this.dataset.ready=1">
+<link rel="stylesheet" href="css/battle.css" media="print" data-pages="battle" onload="this.dataset.ready=1" onerror="this.dataset.ready=1">
+<link rel="stylesheet" href="css/news.css" media="print" data-pages="news" onload="this.dataset.ready=1" onerror="this.dataset.ready=1">
 <!-- fetch the modules together, not one layer of imports at a time -->
 <link rel="modulepreload" href="js/main.js">
 <link rel="modulepreload" href="js/util.js">

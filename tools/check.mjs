@@ -35,6 +35,11 @@ const routes = /const ROUTES = \[([\s\S]*?)\n\];/.exec(read("js/main.js"));
 const views = routes ? [...new Set([...routes[1].matchAll(/,\s*"([\w-]+)"\s*\]/g)].map(m => m[1]))] : [];
 if (!views.length) problems.push("js/main.js: couldn't find the ROUTES list");
 for (const v of views) if (!existsSync(join(ROOT, "js/views", `${v}.js`))) problems.push(`js/main.js: route page "${v}" has no js/views/${v}.js`);
+// …and each page stylesheet in index.html exists and names real pages (a typo would leave that page unstyled)
+for (const [, href, pages] of read("index.html").matchAll(/<link[^>]*href="([^"]+)"[^>]*data-pages="([^"]*)"/g)) {
+  if (!existsSync(join(ROOT, href))) problems.push(`index.html: page stylesheet ${href} doesn't exist`);
+  for (const p of pages.split(" ")) if (!views.includes(p)) problems.push(`index.html: ${href} is for "${p}", which isn't a page in main.js's ROUTES`);
+}
 
 // 4. the app manifest parses and its icons exist; files the service worker pre-caches exist (a warning: it skips missing ones)
 try {

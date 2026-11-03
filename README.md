@@ -73,7 +73,7 @@ Then open http://localhost:8000. There's no build step and nothing to install. T
 - `js/views/`: one file per page.
 - `js/timing.js`: the timing screen for both live and replays. `js/analysis.js` has the replay analysis panels; `js/geomap.js` the real map.
 - `js/api.js`, `js/season.js`, `js/util.js`: data sources, the season calendar, shared helpers.
-- `css/`: `app.css` for the frame and shared pieces, then one file per area.
+- `css/`: `app.css` for the frame and shared pieces, then one file per area. Only `app.css` holds up the first paint: an area's file is switched on just before one of its pages is first drawn (its `data-pages` in `index.html`), and Home and Settings need none.
 - `sw.js` and `manifest.webmanifest`: installing as an app.
 
 ## Publishing

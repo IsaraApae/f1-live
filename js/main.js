@@ -46,6 +46,14 @@ const app = {
   toast
 };
 
+// a page's own stylesheet (index.html: <link data-pages="…">), switched on once it has arrived; a file that fails to load
+// doesn't stop the page. Home and Settings need none: app.css has everything they use.
+const pageStyles = name => Promise.all($$("link[data-pages]").filter(l => l.dataset.pages.split(" ").includes(name)).map(l => new Promise(done => {
+  const on = () => { l.media = "all"; done(); };
+  if (l.dataset.ready) on();
+  else { l.addEventListener("load", on, { once: true }); l.addEventListener("error", on, { once: true }); }
+})));
+
 let current = null, token = 0, routed = 0;
 async function route() {
   // links from the LINE cards: ?replay=KEY opens that replay, ?result=KEY that session's weekend with its results, ?live the Live tab
@@ -65,7 +73,7 @@ async function route() {
   $("#view").replaceChildren(view);
   app.setBack(null); app.setTools(""); window.scrollTo(0, 0);
   let mod;
-  try { mod = (await import(`./views/${name}.js`)).default; }
+  try { mod = (await Promise.all([import(`./views/${name}.js`), pageStyles(name)]))[0].default; }
   catch (e) { console.error(e); view.innerHTML = `<div class="card"><p class="note-line">This page couldn't load. Reload to try again.</p></div>`; return; }
   if (mine !== token) return;
   app.setTitle(mod.title || "F1 Live");
