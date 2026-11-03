@@ -47,6 +47,8 @@ A free Formula 1 companion in the browser: live timing, the track on a real 3D m
 | [three.js](https://threejs.org) | The 3D cars in those views |
 | [bacinger/f1-circuits](https://github.com/bacinger/f1-circuits) | Circuit shapes, to place F1's track coordinates on the map |
 | [Open-Meteo](https://open-meteo.com) | Forecasts at the circuit |
+| Formula 1's pictures (`media.formula1.com`) | Driver photos, team logos and cars, flags and circuit drawings |
+| [MediaPipe](https://github.com/google-ai-edge/mediapipe) | Cutting 2023's driver photos out of their studio backdrop, in the browser |
 | Publishers' RSS feeds | Headlines (collected by `scripts/news.mjs` when the site is published) |
 | `pitlanes.json` (built from OpenF1 by `scripts/pitlanes.mjs`) | Every circuit's pit lane for the Live tab: one ordinary stop's path from the circuit's latest race. OpenF1 only answers free requests between sessions, so the Live tab doesn't ask it during one |
 
@@ -66,7 +68,7 @@ Then open http://localhost:8000. There's no build step and nothing to install. T
 
 ## How the code is laid out
 
-- `index.html`: the frame (top bar, side menu, bottom tabs).
+- `index.html`: the frame (top bar, side menu, bottom tabs). It asks for the first page's modules straight away, Home's or those of the page a LINE card opens (`?live`, `?replay=KEY`, `?result=KEY`), instead of one layer of imports at a time.
 - `js/main.js`: moves between pages using the address's `#/…`.
 - `js/views/`: one file per page.
 - `js/timing.js`: the timing screen for both live and replays. `js/analysis.js` has the replay analysis panels; `js/geomap.js` the real map.
@@ -76,4 +78,4 @@ Then open http://localhost:8000. There's no build step and nothing to install. T
 
 ## Publishing
 
-`.github/workflows/pages.yml` checks the code (`node tools/check.mjs`), collects the headlines and publishes to GitHub Pages on every push to `main` and every 30 minutes. In the repository's **Settings → Pages**, the source must be **GitHub Actions**.
+`.github/workflows/pages.yml` checks the code (`node tools/check.mjs`), collects the headlines, adds the pit lanes of circuits that have had a new race and publishes to GitHub Pages on every push to `main` and every 30 minutes. In the repository's **Settings → Pages**, the source must be **GitHub Actions**.
