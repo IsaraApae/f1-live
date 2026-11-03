@@ -14,6 +14,7 @@
 <link rel="preconnect" href="https://api.openf1.org" crossorigin>
 <link rel="preconnect" href="https://api.jolpi.ca" crossorigin>
 <link rel="preconnect" href="https://media.formula1.com">
+<link rel="preconnect" href="https://api.open-meteo.com" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- the font never holds up the first paint: the page draws in the system font if Google Fonts is slow -->
@@ -24,6 +25,16 @@
     var pick = "dark"; try { pick = JSON.parse(localStorage.getItem("f1.theme")) || "dark"; } catch (e) {}
     var dark = pick === "dark" || (pick === "device" && matchMedia("(prefers-color-scheme: dark)").matches);
     document.documentElement.dataset.mode = dark ? "dark" : "light";
+  })();
+  // a LINE card opens a replay, a full result or the Live tab (?replay=KEY, ?result=KEY, ?live): fetch that page's modules now,
+  // alongside main.js, instead of one layer of imports at a time after it has started (the same for those pages' own #/ links)
+  (function () {
+    var q = new URLSearchParams(location.search), h = location.hash, timing = ["timing.js", "livepos.js", "analysis.js", "geomap.js"], files = [];
+    if (/^#\/replay\/\d+$/.test(h) || (!h && q.get("replay"))) files = ["views/replay.js"].concat(timing);
+    else if (/^#\/result\/\d+$/.test(h) || (!h && q.get("result"))) files = ["views/result.js", "views/weekend.js", "calendar-ui.js"];
+    else if (/^#\/live$/.test(h) || (!h && q.has("live"))) files = ["views/live.js"].concat(timing);
+    else if (/^#\/calendar\/\d{4}\/\d+/.test(h)) files = ["views/weekend.js", "calendar-ui.js"];
+    files.forEach(function (f) { var l = document.createElement("link"); l.rel = "modulepreload"; l.href = "js/" + f; document.head.appendChild(l); });
   })();
 </script>
 <link rel="stylesheet" href="css/app.css">

@@ -16,15 +16,17 @@ export default {
       <div class="stack"><div id="hLive"></div><div id="hHero">${skeleton(5)}</div><div id="hFav"></div><div id="hWeekend"></div><div id="hPodium"></div></div>
       <div class="stack"><div id="hStand"></div><div id="hNews"></div></div></div>`;
     const $ = id => el.querySelector("#" + id);
-    let s, roster = [], timer = 0, next = null;
+    let s, timer = 0, next = null, below = false;
     // the standings, last result and headlines don't need the season: start reading them now, alongside it
     const standings = Promise.all([jolpica("current/driverStandings.json"), jolpica("current/constructorStandings.json"), jolpica("current/last/results.json")]);
     const news = loadNews();
     standings.catch(() => {});   // (if the season fails, nobody waits for these)
-    try { [s, roster] = await Promise.all([currentSeason(), drivers().catch(() => [])]); }
+    // the driver list waits behind the season in OpenF1's queue, and only the cards under the hero use it: the hero
+    // (what's next, the countdown) is drawn as soon as the season is in, the rest when the drivers are
+    const seasonNow = currentSeason(), roster = drivers().catch(() => []);
+    try { s = await seasonNow; }
     catch (e) { $("hHero").innerHTML = `<div class="card"><p class="note-line">Couldn't load the season. Check your connection and try again.</p></div>`; return; }
     if (!el.isConnected) return;
-    const byCode = Object.fromEntries(roster.map(d => [d.tla, d]));
 
     // ---------- on track now, and up next ----------
     function drawNow() {
@@ -51,7 +53,7 @@ export default {
         <div><div class="count" id="hCount">${countdownHtml(n.start - t)}</div><p class="tz">Times in ${esc(tzName())}</p></div>
       </section>`;
       forecast(r.lat, r.lon).then(f => { const x = forecastFor(f, n.start, n.end); if (el.isConnected && x && $("hWx")) $("hWx").innerHTML = wx(x); }).catch(() => {});
-      drawWeekend(r);
+      if (below) drawWeekend(r);
     }
     function drawWeekend(r) {   // the next weekend's sessions, in local time
       const t = Date.now();
@@ -68,9 +70,12 @@ export default {
     }, 1000);
     const slow = setInterval(drawNow, 60000);
 
-    // ---------- your driver and team (picked in Settings), the podium, the standings ----------
-    standings.then(([ds, cs, last]) => {
+    // ---------- the weekend's sessions; your driver and team (picked in Settings), the podium, the standings ----------
+    // (the weekend card comes with the drivers, as the cards above it usually do, so it isn't pushed down by them)
+    roster.then(() => { below = true; if (el.isConnected && next) drawWeekend(next.round); });
+    Promise.all([standings, roster]).then(([[ds, cs, last], list]) => {
       if (!el.isConnected) return;
+      const byCode = Object.fromEntries(list.map(d => [d.tla, d]));
       const dl = ds.MRData.StandingsTable.StandingsLists[0] || {}, cl = cs.MRData.StandingsTable.StandingsLists[0] || {};
       const dStand = dl.DriverStandings || [], cStand = cl.ConstructorStandings || [];
       const race = last.MRData.RaceTable.Races[0];
@@ -111,7 +116,8 @@ export default {
     }).catch(() => { if (el.isConnected) $("hStand").innerHTML = `<div class="card"><p class="note-line">Standings are unavailable right now.</p></div>`; });
 
     // ---------- headlines ----------
-    news.then(n => {
+    // (also with the drivers: on a phone they sit under the cards above, so shown sooner they'd only be pushed off the screen)
+    Promise.all([news, roster]).then(([n]) => {
       if (!el.isConnected) return;
       $("hNews").innerHTML = n && n.items.length ? `<section class="card"><h2 class="card-h"><span>Latest news</span><a class="more" href="#/news">More ${ICONS.chevron}</a></h2>
         <div class="rows">${n.items.slice(0, 6).map(i => `<a class="row hnews-row" href="${esc(i.link)}" target="_blank" rel="noopener"><span class="main"><b>${esc(i.title)}</b><small>${esc(i.source)} · ${ago(i.at)}</small></span>${ICONS.external}</a>`).join("")}</div></section>` : "";
