@@ -4,19 +4,22 @@ A free Formula 1 companion in the browser: live timing, the track on a real 3D m
 
 - **Website:** https://isaraapae.github.io/f1-live/
 
-<img src="docs/replay.jpg" width="800" alt="Session replay: timing tower, track map and playback controls">
+On a phone, in light and dark:
 
 <p>
-  <img src="docs/home.jpg" width="395" alt="Home: next session, countdown, forecast, championship and the last race's podium">
-  <img src="docs/calendar.jpg" width="395" alt="Calendar in your own time zone">
+  <img src="docs/home.jpg" width="395" alt="Home: next session, countdown, forecast and your driver and team, light and dark">
+  <img src="docs/replay.jpg" width="395" alt="Session replay: timing tower and playback controls, light and dark">
 </p>
 <p>
-  <img src="docs/standings.jpg" width="395" alt="Driver standings">
-  <img src="docs/battle.jpg" width="395" alt="Lap battle: two drivers' laps head to head">
+  <img src="docs/calendar.jpg" width="395" alt="Calendar in your own time zone, light and dark">
+  <img src="docs/standings.jpg" width="395" alt="Driver standings, light and dark">
 </p>
 <p>
-  <img src="docs/road.jpg" width="395" alt="Track map, Road view with a 3D car and mini-map">
-  <img src="docs/driver.jpg" width="395" alt="Track map, Driver view from behind the helmet">
+  <img src="docs/battle.jpg" width="395" alt="Lap battle: two drivers' laps head to head, light and dark">
+  <img src="docs/road.jpg" width="395" alt="Track map, Road view with a mini-map, light and dark">
+</p>
+<p>
+  <img src="docs/driver.jpg" width="395" alt="Track map, Driver view, light and dark">
 </p>
 
 ## What's in it
