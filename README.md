@@ -1,8 +1,11 @@
 # F1 Live
 
+[![Publish](https://github.com/IsaraApae/f1-live/actions/workflows/pages.yml/badge.svg)](https://github.com/IsaraApae/f1-live/actions/workflows/pages.yml) [![MIT licence](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
+
 A free Formula 1 companion in the browser: live timing, the track on a real 3D map, race control, weather, the season calendar in your own time zone, standings, full replays with car telemetry, and lap battles. No account, no ads, no tracking.
 
 - **Website:** https://isaraapae.github.io/f1-live/
+- **Built with:** plain JavaScript modules, HTML and CSS: no framework, no packages, nothing to build (the publish only minifies). [MapLibre](https://maplibre.org) draws the real map, [three.js](https://threejs.org) the 3D cars and [MediaPipe](https://github.com/google-ai-edge/mediapipe) cuts out 2023's photos, each loaded from a CDN only when a page needs it. Hosted on GitHub Pages, published by GitHub Actions.
 
 In the same style as the [Alert Watch](https://github.com/IsaraApae/alert-watch) LINE cards: each driver as their code and car number (RUS 63), lists on their team's colour stripe, faces cut out. On a phone, in light and dark:
 
@@ -51,6 +54,7 @@ In the same style as the [Alert Watch](https://github.com/IsaraApae/alert-watch)
 | [bacinger/f1-circuits](https://github.com/bacinger/f1-circuits) | Circuit shapes, to place F1's track coordinates on the map |
 | [Open-Meteo](https://open-meteo.com) | Forecasts at the circuit |
 | Formula 1's pictures (`media.formula1.com`) | Driver photos, team logos and cars, flags and circuit drawings |
+| [Titillium Web](https://fonts.google.com/specimen/Titillium+Web) (SIL Open Font License, in `fonts/`) | The headings' font |
 | [MediaPipe](https://github.com/google-ai-edge/mediapipe) | Cutting 2023's driver photos out of their studio backdrop, in the browser |
 | Publishers' RSS feeds | Headlines (collected by `scripts/news.mjs` when the site is published) |
 | `pitlanes.json` (built from OpenF1 by `scripts/pitlanes.mjs`) | Every circuit's pit lane for the Live tab: one ordinary stop's path from the circuit's latest race. OpenF1 only answers free requests between sessions, so the Live tab doesn't ask it during one |
@@ -65,7 +69,7 @@ Live car positions on the map are worked out from Formula 1's mini-sector marks 
 python -m http.server 8000
 ```
 
-Then open http://localhost:8000. There's no build step and nothing to install. To see headlines locally, run `node scripts/news.mjs` once first (it writes `news.json`).
+Then open http://localhost:8000. There's no build step and nothing to install, and no environment variables or API keys: every data source is free and public. To see headlines locally, run `node scripts/news.mjs` once first (it writes `news.json`). `node tools/check.mjs` runs the same checks as a publish.
 
 `index.html?feed=ws://localhost:PORT` points the Live tab at a local test feed instead of Formula 1's (only `localhost` and `127.0.0.1` are accepted).
 
@@ -78,7 +82,14 @@ Then open http://localhost:8000. There's no build step and nothing to install. T
 - `js/api.js`, `js/season.js`, `js/util.js`: data sources, the season calendar, shared helpers.
 - `css/`: `app.css` for the frame and shared pieces, then one file per area. Only `app.css` holds up the first paint: an area's file is switched on just before one of its pages is first drawn (its `data-pages` in `index.html`), and Home and Settings need none.
 - `sw.js` and `manifest.webmanifest`: installing as an app.
+- `fonts/`: Titillium Web, served from the site. `icons/og-image.jpg`: the card a shared link shows.
 
 ## Publishing
 
-`.github/workflows/pages.yml` checks the code (`node tools/check.mjs`), collects the headlines, adds the pit lanes of circuits that have had a new race and publishes to GitHub Pages on every push to `main` and every 30 minutes. In the repository's **Settings → Pages**, the source must be **GitHub Actions**.
+`.github/workflows/pages.yml` checks the code (`node tools/check.mjs`), collects the headlines, adds the pit lanes of circuits that have had a new race and publishes to GitHub Pages on every push to `main` and every 30 minutes. The published scripts and styles are minified by esbuild (with source maps, so the browser's developer tools show the readable code); the repository's code stays as it is. In the repository's **Settings → Pages**, the source must be **GitHub Actions**.
+
+`.github/workflows/check.yml` runs the same checks on pull requests. The workflows' actions are pinned to exact commits, and Dependabot opens a pull request each week when one has a new version.
+
+## Licence
+
+The code is under the [MIT licence](LICENSE). It doesn't cover what the site shows from elsewhere: Formula 1's pictures, logos and timing data, the publishers' headlines and the other sources above belong to their owners, and Titillium Web is under the SIL Open Font License (`fonts/OFL.txt`).
