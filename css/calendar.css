@@ -92,10 +92,10 @@
 /* the next one */
 .cal-wk.next { border-color: color-mix(in srgb, var(--red) 65%, var(--line)); background: linear-gradient(135deg, color-mix(in srgb, var(--red) 13%, var(--panel)), var(--panel) 65%); }
 .cal-wk.next .cal-rnd { background: var(--red); border-color: var(--red); color: #fff; }
-.cal-wk.next .cal-rnd small { color: rgba(255, 255, 255, .8); }
+.cal-wk.next .cal-rnd small { color: #fff; }
 .cal-wk.live { border-color: var(--red); box-shadow: 0 0 0 1px var(--red), 0 6px 24px color-mix(in srgb, var(--red) 25%, transparent); }
 .cal-wk.live .cal-rnd { background: var(--red); border-color: var(--red); color: #fff; }
-.cal-wk.live .cal-rnd small { color: rgba(255, 255, 255, .8); }
+.cal-wk.live .cal-rnd small { color: #fff; }
 
 @media (max-width: 760px) {
   .cal-next-top { grid-template-columns: minmax(0, 1fr); gap: 14px; }
