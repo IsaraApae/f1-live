@@ -225,13 +225,13 @@ img[src$="#invert"], img.inv { filter: brightness(0) invert(1); }
 .home-hero .acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
 .home-hero .count b { font-size: 30px; }
 .home-hero .count div { min-width: 62px; padding: 9px 8px; }
-.home-hero .trackimg { position: absolute; right: -10px; top: -10px; width: 260px; opacity: .14; pointer-events: none; filter: grayscale(1) brightness(3); }
+.home-hero .trackimg { position: absolute; right: 14px; top: 14px; width: min(44%, 230px); max-height: calc(100% - 28px); object-fit: contain; object-position: right top; opacity: .14; pointer-events: none; filter: grayscale(1) brightness(3); }
 [data-mode="light"] .home-hero .trackimg { filter: grayscale(1); opacity: .12; }
 @media (max-width: 760px) {
   .home-hero { grid-template-columns: minmax(0, 1fr); }
   .home-hero .count div { min-width: 0; flex: 1; }
   .hero h2 { font-size: 24px; }
-  .home-hero .trackimg { width: 180px; }
+  .home-hero .trackimg { width: min(42%, 170px); }
 }
 .sched { display: grid; }
 .sched .row { grid-template-columns: 64px minmax(0, 1fr) auto; }

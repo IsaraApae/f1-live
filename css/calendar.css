@@ -6,7 +6,7 @@
 .cal-next { display: grid; gap: 16px; }
 .cal-next > :not(.cal-trk) { position: relative; }   /* above the faint track drawing */
 .cal-next.is-live { border-color: color-mix(in srgb, var(--red) 70%, var(--line)); }
-.cal-trk { position: absolute; right: -18px; top: -14px; width: 300px; opacity: .13; pointer-events: none; }
+.cal-trk { position: absolute; right: 14px; top: 14px; width: min(44%, 260px); max-height: calc(100% - 28px); object-fit: contain; object-position: right top; opacity: .13; pointer-events: none; }
 [data-mode="light"] .cal-trk { filter: invert(1); opacity: .09; }
 .cal-next-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: end; }
 .cal-next-id { display: grid; gap: 5px; min-width: 0; }
@@ -101,7 +101,7 @@
   .cal-next-cd { justify-items: stretch; }
   .cal-next .count div, .wkd-next .count div { min-width: 0; flex: 1; }
   .cal-next .count b, .wkd-next .count b { font-size: 26px; }
-  .cal-trk { width: 200px; }
+  .cal-trk { width: min(42%, 170px); }
   .cal-where h2 { font-size: 23px; }
   .cal-where .flag { width: 32px; height: 21px; }
   .cal-acts .btn { flex: 1; }
