@@ -1,0 +1,11 @@
+# Keeps the workflows' actions current: a pull request each week when one has a new version (they're pinned to exact
+# commits in .github/workflows). The site itself has no packages to update: its libraries load from CDNs at fixed versions.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
