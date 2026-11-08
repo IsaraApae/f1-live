@@ -3,8 +3,8 @@
 // car is built here, in metres from its middle (x forward, y up, z to the side), roughly a 2026 car: 5.5 m long, 1.9 m wide.
 // The bodywork is lofted through cross-sections, the wings are real wing profiles, paint and carbon reflect a soft studio
 // light, and each car shows its number and the colour of the tyres it's on. Parts of one material are merged into one shape.
-const THREE = "https://cdn.jsdelivr.net/npm/three@0.160.0/+esm";
-const ROOM = "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/environments/RoomEnvironment.js/+esm";   // (imports the same three)
+const THREE = "https://cdn.jsdelivr.net/npm/three@0.186.1/+esm";
+const ROOM = "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/environments/RoomEnvironment.js/+esm";   // (imports the same three)
 
 export async function carLayer(ml) {
   const [T, { RoomEnvironment }] = await Promise.all([import(THREE), import(ROOM)]);
@@ -165,8 +165,9 @@ export async function carLayer(ml) {
   return {
     layer: {
       id: "cars3d", type: "custom", renderingMode: "3d",
-      onAdd(map, gl) { if (!renderer) { renderer = new T.WebGLRenderer({ canvas: map.getCanvas(), context: gl, antialias: true }); renderer.autoClear = false; } },
-      render(gl, matrix) {
+      onAdd(map, gl) { if (!renderer) { renderer = new T.WebGLRenderer({ canvas: map.getCanvas(), context: gl, antialias: true }); renderer.autoClear = false;
+        renderer.debug.checkShaderErrors = false; } },   // (not asking the GPU about each shader: quicker, and no compiler notes in the console)
+      render(gl, { defaultProjectionData: { mainMatrix: matrix } }) {   // (MapLibre 5 on: the matrix comes in an object)
         if (!origin) return;
         renderer.resetState();
         if (!scene.environment) scene.environment = new T.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), .04).texture;   // the reflections (here: MapLibre restores its state after this layer)

@@ -4,7 +4,7 @@
 //   AlphaTauri's logo: a flat navy mark on white (util.js picks it; the other 2023 logos are ready-made transparent
 //            ones). One colour on white separates exactly: each pixel's whiteness is its transparency
 // Each picture is done once per visit; until it's ready it stays hidden, and if it fails it shows as it is.
-const MP = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+const MP = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35";
 const MODEL = "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/1/selfie_segmenter.tflite";
 export const DRIVER = /\/content\/dam\/fom-website\/drivers\/\d{4}Drivers\//;
 export const LOGO = /\/team%20logos\/[^/#]+\.png#mark/;

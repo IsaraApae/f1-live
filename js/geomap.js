@@ -5,7 +5,7 @@
 // circuit shapes (github.com/bacinger/f1-circuits, MIT licence).
 import { esc, ink } from "./util.js";
 
-const LIB = "https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/";
+const LIB = "https://cdn.jsdelivr.net/npm/maplibre-gl@6.15.0/dist/";   // (from v6 an ES module only: cdnjs no longer has it)
 const SHAPES = "https://cdn.jsdelivr.net/gh/bacinger/f1-circuits@8094e957b8d6aa8b9f4510c93968556cccd30e02/f1-circuits.geojson";
 const STYLE = dark => `https://tiles.openfreemap.org/styles/${dark ? "dark" : "positron"}`;
 const SECTOR_COLOURS = ["#ff3b5c", "#3b9eff", "#ffd60a"];
@@ -24,17 +24,14 @@ const GARAGE = 11, BOX = 12;   // the garages: how deep and how wide each is (me
 const DAY = { ground: "#e7e8eb", water: "#a9d4f1", grass: "#c4e8b4", asphalt: "#474a51", buildings: "#f3f4f6" };
 const SKY = { "sky-color": "#79b6ea", "horizon-color": "#e4f0fa", "fog-color": "#eef2f6", "sky-horizon-blend": .55, "horizon-fog-blend": .5, "fog-ground-blend": .85 };
 
-export const supported = () => { try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch (e) { return false; } };
+export const supported = () => { try { return !!document.createElement("canvas").getContext("webgl2"); } catch (e) { return false; } };   // (MapLibre 6 needs WebGL 2)
 
 let lib = null;
 function loadLib() {
   return lib = lib || new Promise((ok, fail) => {
-    if (window.maplibregl) return ok(window.maplibregl);
-    const css = document.createElement("link"); css.rel = "stylesheet"; css.href = LIB + "maplibre-gl.min.css"; document.head.appendChild(css);
-    const s = document.createElement("script"); s.src = LIB + "maplibre-gl.min.js"; s.async = true;
-    s.onload = () => window.maplibregl ? ok(window.maplibregl) : fail(new Error("no maplibre"));
-    s.onerror = () => { lib = null; fail(new Error("maplibre didn't load")); };
-    document.head.appendChild(s);
+    const css = document.createElement("link"); css.rel = "stylesheet"; css.href = LIB + "maplibre-gl.css"; document.head.appendChild(css);
+    // (its worker comes from the same folder, through a same-origin blob: MapLibre works that out from the module's address)
+    import(LIB + "maplibre-gl.mjs").then(ok, e => { lib = null; css.remove(); fail(e); });
   });
 }
 // start fetching the map library and the circuit shapes early, while the session itself loads
@@ -198,7 +195,7 @@ export async function createMap(el, { dark, onCar }) {
       const under = on ? "cars3d" : (map.getStyle().layers.find(l => l.type === "symbol") || {}).id;
       for (const id of ["b3d", "b3d-near"]) if (map.getLayer(id) && (!under || map.getLayer(under))) map.moveLayer(id, under);
     } catch (e) {}
-    if (!on) { for (const c of cars.values()) c.e.classList.remove("away"); try { map.transform.fov = FOV; } catch (e) {} }
+    if (!on) { for (const c of cars.values()) c.e.classList.remove("away"); try { map.setVerticalFieldOfView(FOV); } catch (e) {} }
     for (const id of ["trk-edge", "trk-sec", "pit", "corners", "corners-n", "bats"]) vis(id, !on);
     el.classList.toggle("riding", on);
     for (const v of Object.keys(RIDES)) el.classList.toggle(v, v === viewNow);
@@ -383,7 +380,7 @@ export async function createMap(el, { dark, onCar }) {
     if (car3) car3.show(list);
     drawMini(c);
     const r = RIDES[viewNow], from = along(c, r.from[0], r.from[1]), to = along(c, r.to[0], r.to[1]);
-    try { if (Math.abs(map.transform.fov - (r.fov || FOV)) > .01) map.transform.fov = r.fov || FOV; } catch (e) {}   // (MapLibre 4's transform)
+    try { if (Math.abs(map.getVerticalFieldOfView() - (r.fov || FOV)) > .01) map.setVerticalFieldOfView(r.fov || FOV); } catch (e) {}
     try { map.jumpTo(map.calculateCameraOptionsFromTo(ml.LngLat.convert(from), r.from[2], ml.LngLat.convert(to), r.to[2])); } catch (e) {}
   }
   function setLook(n, look) {   // f: someone else followed (fade), F: followed, b: in a battle, p: in the pit lane
