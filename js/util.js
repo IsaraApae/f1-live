@@ -47,6 +47,12 @@ export const ink = hex => {   // black or white text on a colour
 export const tagVars = c => `--tc:${c};--tcf:${ink(c)}`;
 export const hex = c => c ? (String(c).startsWith("#") ? c : "#" + c) : "#777777";
 
+// formula1.com's older pictures (flags, track drawings: /content/dam/…) at the width they're drawn, not their full size: its
+// image service resizes them (a 960×720 track drawing: 27 KB, 10 KB at 520 px; a flag: 14 KB, 2 KB at 144 px). Pick w for
+// twice the widest the picture is shown on a computer and three times on a phone. Other addresses are left as they are.
+export const f1img = (url, w) => /^https:\/\/media\.formula1\.com\/content\/dam\//.test(url || "")
+  ? url.replace("media.formula1.com/", `media.formula1.com/image/upload/c_limit,w_${w}/`) : url || "";
+
 // formula1.com's pictures for a season: each year's driver portraits, team logos and cars.
 // From 2024 they're under common/f1/<year>/<team>/ (the team as that year's OpenF1 names it, a few spelled differently);
 // 2023's are on the older site, by surname and by team name with dashes.

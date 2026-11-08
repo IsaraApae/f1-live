@@ -1,6 +1,6 @@
 // One Grand Prix weekend: where and when, every session in the viewer's time zone with a live countdown, the forecast
 // at the circuit, and for finished sessions the results, the track conditions and a link to the replay.
-import { esc, fmtTime, fmtDay, fmtRange, tzName, countdown, countdownHtml, dtagHtml, hex, lapText, ICONS, skeleton, photo, podiumOrder } from "../util.js";
+import { esc, fmtTime, fmtDay, fmtRange, tzName, countdown, countdownHtml, dtagHtml, hex, lapText, ICONS, skeleton, photo, podiumOrder, f1img } from "../util.js";
 import { of1, forecast, forecastFor } from "../api.js";
 import { season } from "../season.js";
 import { shortName, wxHtml, flagImg } from "../calendar-ui.js";
@@ -143,7 +143,7 @@ export default {
             <p class="sub">${esc(r.circuit)}<br>${esc(r.locality)}${r.country ? `, ${esc(r.country)}` : ""}</p>
             <p class="wkd-dates">${ICONS.calendar}${fmtRange(r.start, r.end)} ${new Date(r.end).getFullYear()}</p>
           </div>
-          ${r.circuitImage ? `<div class="wkd-trk"><img src="${esc(r.circuitImage)}" alt="${esc(r.circuit)} layout" onerror="this.parentNode.remove()"></div>` : ""}
+          ${r.circuitImage ? `<div class="wkd-trk"><img src="${esc(f1img(r.circuitImage, 640))}" alt="${esc(r.circuit)} layout" onerror="this.parentNode.remove()"></div>` : ""}
         </div>
         ${foot}
       </section>`;
