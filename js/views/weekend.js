@@ -74,7 +74,7 @@ export default {
 
     const S = r.sessions;
     const got = {}, cond = {};            // session key → results / track conditions: { busy } | { err } | data
-    const open = new Set(), all = new Set();
+    const open = new Set(), all = new Set(), qOrder = new Set();   // qOrder: qualifyings switched back to their own order
     // every finished session's results straight away (a weekend has at most seven, well within OpenF1's 30 requests a minute)
     for (const x of S.filter(x => x.key && phase(x, Date.now()) === "done")) open.add(x.key);
     if (focus) {   // opened for one session's full result ("Full result" on a LINE card): every driver, scrolled to once it's shown
@@ -197,20 +197,30 @@ export default {
       const rows = [...g.res].sort(byPos), every = all.has(x.key);
       const grid = new Map((g.grid || []).map(e => [e.driver_number, e.position]));
       const starts = e => grid.has(e.driver_number) && grid.get(e.driver_number) !== e.position ? grid.get(e.driver_number) : null;
-      // the drivers who start further back than they qualified (the penalties): the rest only moved up into their places
-      const back = rows.filter(e => num(e.position) && starts(e) > e.position)
-        .map(e => `${esc((g.names(x.key, e.driver_number) || {}).name_acronym || e.driver_number)} P${e.position} → P${starts(e)}`);
-      // once the grid has changed, the drivers are listed where they start (Russell at P7), each moved one marked with where they qualified
-      const onGrid = rows.some(starts), at = e => onGrid && grid.has(e.driver_number) ? grid.get(e.driver_number) : e.position;
+      // places a driver starts further back than they qualified (the penalties); the rest only moved up into the gaps
+      const lost = e => num(e.position) && starts(e) > e.position ? starts(e) - e.position : 0;
+      const changed = rows.some(starts);
+      // once the grid has changed, the drivers are listed where they start (Russell at P7); a switch flips back to the qualifying order
+      const onGrid = changed && !qOrder.has(x.key), at = e => onGrid && grid.has(e.driver_number) ? grid.get(e.driver_number) : e.position;
       const list = onGrid ? [...rows].sort((a, b) => (num(at(a)) ? at(a) : 999) - (num(at(b)) ? at(b) : 999)) : rows;
-      return `${back.length ? `<p class="wkd-gridnote"><b>Starting grid, changed after qualifying:</b> ${back.join(", ")}</p>` : ""}
+      const pens = rows.filter(lost).sort((a, b) => starts(a) - starts(b));
+      const panel = pens.length ? `<div class="wkd-pen"><small class="wkd-lbl">Grid penalties</small>${pens.map(e => {
+          const d = g.names(x.key, e.driver_number) || {}, c = hex(d.team_colour);
+          return `<div class="wkd-penr">${dtagHtml(e.driver_number, d.name_acronym, c, true)}<span class="wkd-penn">${esc(d.last_name || `Car ${e.driver_number}`)}</span>
+            <span class="wkd-move"><s>P${e.position}</s>→<b>P${starts(e)}</b><em>▼${lost(e)}</em></span></div>`;
+        }).join("")}</div>` : "";
+      const seg = changed ? `<div class="wkd-gseg"><div class="seg wide">
+          <button type="button" data-gview="${x.key}" aria-pressed="${onGrid}">Starting grid</button>
+          <button type="button" data-gview="${x.key}" aria-pressed="${!onGrid}">Qualifying</button></div></div>` : "";
+      return `${panel}${seg}
         <ol class="rows wkd-rl">${(every ? list : list.slice(0, TOP)).map(e => {
-          const d = g.names(x.key, e.driver_number) || {}, c = hex(d.team_colour), [main, sub] = resultText(x, e), gp = starts(e);
+          const d = g.names(x.key, e.driver_number) || {}, c = hex(d.team_colour), [main, sub] = resultText(x, e);
+          const mark = !lost(e) ? "" : onGrid ? `▼${lost(e)} · Qualified P${e.position}` : `Starts P${starts(e)}`;
           return `<li class="row wkd-r${at(e) === 1 ? " p1" : ""}${e.dnf || e.dns || e.dsq ? " out" : ""}" style="--tc:${esc(c)}">
             <span class="wkd-p">${num(at(e)) ? at(e) : "–"}</span>
             ${d.last_name ? pic(d, 64, c).replace("wkd-face", "wkd-rface") : `<span class="face wkd-rface"></span>`}
             ${dtagHtml(e.driver_number, d.name_acronym, c, true)}
-            <span class="main"><b>${esc(d.first_name ? `${d.first_name} ${d.last_name}` : `Car ${e.driver_number}`)}</b><small>${esc(d.team_name || "")}</small>${gp ? `<small class="wkd-grid${gp > e.position ? " back" : ""}">Qualified P${e.position}</small>` : ""}</span>
+            <span class="main"><b>${esc(d.first_name ? `${d.first_name} ${d.last_name}` : `Car ${e.driver_number}`)}</b><small>${esc(d.team_name || "")}</small>${mark ? `<small class="wkd-grid back">${mark}</small>` : ""}</span>
             <span class="end">${esc(main)}<small>${esc(sub)}</small></span>
           </li>`;
         }).join("")}</ol>
@@ -252,9 +262,10 @@ export default {
     }
 
     el.addEventListener("click", e => {
-      const b = e.target.closest("[data-toggle],[data-all],[data-cond],[data-retry]");
+      const b = e.target.closest("[data-toggle],[data-all],[data-cond],[data-retry],[data-gview]");
       if (!b) return;
-      const k = +(b.dataset.toggle || b.dataset.all || b.dataset.cond || b.dataset.retry), i = S.findIndex(x => x.key === k);
+      const k = +(b.dataset.toggle || b.dataset.all || b.dataset.cond || b.dataset.retry || b.dataset.gview), i = S.findIndex(x => x.key === k);
+      if (b.dataset.gview) { qOrder.has(k) ? qOrder.delete(k) : qOrder.add(k); paintRes(k); return; }
       if (b.dataset.toggle) {
         if (open.has(k)) open.delete(k);
         else { open.add(k); loadResults(k); loadCond(k); }   // opened by hand: the conditions too

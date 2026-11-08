@@ -173,8 +173,14 @@
 .wkd-p { font-family: var(--display); font-weight: 900; font-size: 15px; text-align: right; }
 .wkd-r.p1 { background: color-mix(in srgb, var(--tc) 11%, transparent); }
 .wkd-r.out .end { color: var(--red); }
-.wkd-gridnote { margin: 0; padding: 10px 16px; font-size: 13px; color: var(--dim); border-bottom: 1px solid var(--line); }
-.wkd-gridnote b { color: var(--text); }
+.wkd-pen { display: grid; gap: 8px; padding: 12px 16px; background: color-mix(in srgb, var(--red) 7%, transparent); border-bottom: 1px solid var(--line); }
+.wkd-pen .wkd-lbl { color: var(--red); }
+.wkd-penr { display: flex; align-items: center; gap: 10px; }
+.wkd-penn { flex: 1; min-width: 0; font-weight: 700; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wkd-move { display: flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--dim); white-space: nowrap; }
+.wkd-move b { color: var(--text); font-weight: 800; }
+.wkd-move em { font-style: normal; font-weight: 800; font-size: 12px; color: var(--red); background: color-mix(in srgb, var(--red) 14%, transparent); border-radius: 5px; padding: 1px 5px; }
+.wkd-gseg { padding: 10px 16px 2px; }
 .row .main .wkd-grid { color: var(--text); font-weight: 700; }
 .row .main .wkd-grid.back { color: var(--red); }
 .wkd-cond { padding: 12px 16px; border-top: 1px solid var(--line); display: grid; gap: 8px; justify-items: start; }
