@@ -74,7 +74,14 @@ async function route() {
   app.setBack(null); app.setTools(""); window.scrollTo(0, 0);
   let mod;
   try { mod = (await Promise.all([import(`./views/${name}.js`), pageStyles(name)]))[0].default; }
-  catch (e) { console.error(e); view.innerHTML = `<div class="card"><p class="note-line">This page couldn't load. Reload to try again.</p></div>`; return; }
+  catch (e) {
+    console.error(e);
+    // most often a release that came out while this page was open: its files don't fit the ones already running. Loading the
+    // page again loads one release whole (each has its own script addresses, tools/stamp.mjs). Once a minute at most, so no
+    // connection, or a real fault, shows the note instead of reloading over and over.
+    if (navigator.onLine !== false && reloadOnce()) return;
+    view.innerHTML = `<div class="card"><p class="note-line">This page couldn't load. Reload to try again.</p></div>`; return;
+  }
   if (mine !== token) return;
   app.setTitle(mod.title || "F1 Live");
   const tab = mod.tab || name;
@@ -82,6 +89,13 @@ async function route() {
   try { current = { cleanup: await mod.mount(view, params, app) }; }
   catch (e) { console.error(e); if (mine === token) view.innerHTML = `<div class="card"><p class="note-line">Something went wrong loading this page. Try again in a minute.</p></div>`; }
   if (mine !== token && current && current.cleanup) { current.cleanup(); current = null; }
+}
+function reloadOnce() {
+  try {
+    if (Date.now() - (+sessionStorage.getItem("f1.reloaded") || 0) < 60000) return false;
+    sessionStorage.setItem("f1.reloaded", Date.now());   // (no reload if this can't be noted: it couldn't stop a loop)
+  } catch (e) { return false; }
+  location.reload(); return true;
 }
 addEventListener("hashchange", route);
 route();
