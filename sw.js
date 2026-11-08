@@ -38,7 +38,11 @@ self.addEventListener("fetch", e => {
 });
 
 async function cacheFirst(req) {
-  // js/util.js?v=<release> (index.html's import map, tools/stamp.mjs) is this cache's js/util.js: each release has its own cache
+  // js/util.js?v=<release> (index.html's import map, tools/stamp.mjs) is this cache's js/util.js, but only for this release:
+  // a page of the next release, opened before that release's worker takes over, gets its own files from the site instead of
+  // this release's under the new address (8 Nov 2026: the Live tab ran the last release's timing.js after a publish)
+  const v = new URL(req.url).searchParams.get("v");
+  if (v && v !== VERSION) return fetch(req, { cache: "no-store" });
   const cache = await caches.open(CACHE), hit = await cache.match(req, { ignoreSearch: true });
   if (hit) return hit;
   const res = await fetch(fresh(req.url), { cache: "no-store" });   // this release's file, never an older stored copy
