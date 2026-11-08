@@ -20,7 +20,6 @@ export const podiumOrder = top => top.length === 3 ? [top[1], top[0], top[2]] : 
 const hour12 = () => store.get("f1.clock", "24") === "12";
 export const fmtTime = t => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: hour12() });
 export const fmtDay = t => new Date(t).toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" });
-export const fmtDate = t => new Date(t).toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" });
 export const fmtShortDate = t => new Date(t).toLocaleDateString([], { day: "numeric", month: "short" });
 export const fmtWhen = t => `${fmtDay(t)} · ${fmtTime(t)}`;
 export const fmtRange = (a, b) => {   // "6 – 8 Mar" or "30 Oct – 1 Nov"

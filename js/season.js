@@ -52,8 +52,6 @@ export const allSessions = rounds => rounds.flatMap(r => r.sessions.map(s => ({ 
 // on track now (from 15 minutes before the start to 30 after the end)
 export const liveSession = (rounds, t = Date.now()) => allSessions(rounds).find(s => t >= s.start - 15 * 60000 && t <= s.end + 30 * 60000) || null;
 export const nextSession = (rounds, t = Date.now()) => allSessions(rounds).filter(s => s.start > t).sort((a, b) => a.start - b.start)[0] || null;
-export const lastSession = (rounds, t = Date.now()) => allSessions(rounds).filter(s => s.end < t && s.key).sort((a, b) => b.end - a.end)[0] || null;
-export const nextRound = (rounds, t = Date.now()) => rounds.find(r => r.end > t) || null;
 export const lastRace = (rounds, t = Date.now()) => [...rounds].reverse().find(r => r.sessions.some(s => s.kind === "race" && s.end < t)) || null;
 
 // the season that's on: this year's, or next year's once this one is over and the new calendar is out
@@ -114,5 +112,3 @@ export function drivers(year = new Date().getFullYear()) {
 let picked = null;
 export const pickedYear = () => picked;
 export const pickYear = y => { picked = +y || null; };
-// Jolpica's team names differ from F1's own ("RB F1 Team" vs "Racing Bulls"): match a Jolpica team by its drivers' codes
-export const teamOfCode = (list, code) => (list.find(d => d.tla === code) || {}).team || null;
