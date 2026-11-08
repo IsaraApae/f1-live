@@ -210,7 +210,7 @@ export default {
             <span class="wkd-p">${num(at(e)) ? at(e) : "–"}</span>
             ${d.last_name ? pic(d, 64, c).replace("wkd-face", "wkd-rface") : `<span class="face wkd-rface"></span>`}
             ${dtagHtml(e.driver_number, d.name_acronym, c, true)}
-            <span class="main"><b>${esc(d.first_name ? `${d.first_name} ${d.last_name}` : `Car ${e.driver_number}`)}</b><small>${esc(d.team_name || "")}${gp ? ` · <span class="wkd-grid${gp > e.position ? " back" : ""}">Qualified P${e.position}</span>` : ""}</small></span>
+            <span class="main"><b>${esc(d.first_name ? `${d.first_name} ${d.last_name}` : `Car ${e.driver_number}`)}</b><small>${esc(d.team_name || "")}</small>${gp ? `<small class="wkd-grid${gp > e.position ? " back" : ""}">Qualified P${e.position}</small>` : ""}</span>
             <span class="end">${esc(main)}<small>${esc(sub)}</small></span>
           </li>`;
         }).join("")}</ol>
