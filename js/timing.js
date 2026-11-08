@@ -350,6 +350,9 @@ export function flagState(msgs) {   // the track's state from race control's mes
     // red flag: the flag itself, or the words (OpenF1 often sends "RED FLAG - RACE SUSPENDED" with no flag colour)
     if ((flag === "RED" && m.Scope !== "Sector") || /^RED FLAG|^SESSION ABORTED|^STARTING PROCEDURE SUSPENDED/.test(text)) st = "5";
     if (st === "5" && /^SESSION STARTED|^START ORDER/.test(text)) st = "1";   // racing again
+    // race control doesn't always clear every sector it lit (Brazil 2026: sector 15's double yellow never got its "CLEAR IN
+    // TRACK SECTOR 15"), so the chequered flag clears whatever is left; later yellows (the slowing-down lap) still show
+    if (/^CHEQUERED FLAG/.test(text) || flag === "CHEQUERED") for (const k in yellow) delete yellow[k];
     if (/^TRACK CLEAR|^GREEN LIGHT - PIT EXIT OPEN/.test(text) || ((flag === "GREEN" || flag === "CLEAR") && m.Scope === "Track")) {
       st = "1"; for (const k in yellow) delete yellow[k];
     }
@@ -1218,8 +1221,11 @@ function renderSectors() {   // where sectors 1 and 2 end, by the fastest sector
 let flagKey = "";
 function renderFlags() {   // yellow and double-yellow sectors, lit up on the track; the whole track under a red flag or safety car
   const g = $("flags"); if (!g || !circuit) return;
-  const { yellow } = flagState(list((S.RaceControlMessages || {}).Messages));
+  let { yellow } = flagState(list((S.RaceControlMessages || {}).Messages));
   const st = (S.TrackStatus || {}).Status;
+  // live, Formula 1's own track status has the last word: all clear means no yellow anywhere, whatever race control didn't
+  // clear by name (a replay works its status out from the same messages, so the chequered flag is its backstop: flagState)
+  if (mode === "live" && st === "1") yellow = {};
   const key = JSON.stringify(yellow) + st;
   if (key === flagKey) return; flagKey = key;
   $("mapLegend").hidden = !Object.keys(yellow).length;
