@@ -24,7 +24,7 @@
 .cal-next .count div, .wkd-next .count div { min-width: 62px; padding: 9px 8px; }
 .cal-sched { background: color-mix(in srgb, var(--panel) 72%, transparent); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
 .cal-sched .row { grid-template-columns: 58px minmax(0, 1fr) auto; padding: 9px 14px; align-items: start; }
-.cal-sched .row.done { opacity: .5; }
+.cal-sched .row.done { color: var(--dim); }
 .cal-sched .row.now { background: color-mix(in srgb, var(--red) 12%, transparent); }
 .cal-sched .k { font-weight: 900; font-size: 11.5px; color: var(--dim); text-transform: uppercase; letter-spacing: .4px; padding-top: 2px; }
 .cal-sched .main b { display: flex; align-items: center; gap: 7px; }
@@ -81,13 +81,14 @@
 .cal-win small { color: var(--dim); font-weight: 600; margin-left: auto; white-space: nowrap; padding-left: 4px; }
 .cal-when { display: flex; gap: 8px; color: var(--dim); font-weight: 600; white-space: nowrap; overflow: hidden; }
 .cal-when b { color: var(--text); font-weight: 800; }
-.cal-on { display: flex; align-items: center; gap: 6px; color: var(--red); font-weight: 600; }
+.cal-on { display: flex; align-items: center; gap: 6px; color: var(--red-ink); font-weight: 600; }
 .cal-on b { font-weight: 900; }
 .cal-on svg { width: 16px; height: 16px; fill: currentColor; }
 /* finished: dimmed, the winner stays readable */
 .cal-wk.done { background: color-mix(in srgb, var(--panel) 65%, var(--bg)); }
-.cal-wk.done :is(.cal-rnd, .cal-name, .cal-date, .cal-loc, .cal-tags) { opacity: .55; }
-.cal-wk.done .flag { filter: saturate(.4); }
+.cal-wk.done :is(.cal-rnd b, .cal-name b, .cal-date) { color: var(--dim); }   /* greyed rather than see-through: still readable */
+.cal-wk.done .cal-tags .badge { background: none; color: var(--dim); box-shadow: inset 0 0 0 1px var(--line); }
+.cal-wk.done .flag { filter: saturate(.4); opacity: .55; }
 /* the next one */
 .cal-wk.next { border-color: color-mix(in srgb, var(--red) 65%, var(--line)); background: linear-gradient(135deg, color-mix(in srgb, var(--red) 13%, var(--panel)), var(--panel) 65%); }
 .cal-wk.next .cal-rnd { background: var(--red); border-color: var(--red); color: #fff; }
@@ -166,23 +167,23 @@
 .wkd-more svg { width: 16px; height: 16px; fill: currentColor; transform: rotate(90deg); transition: transform .15s; }
 .wkd-more[aria-expanded="true"] svg { transform: rotate(-90deg); }
 .wkd-res + .wkd-more, .wkd-all { border-top: 1px solid var(--line); }
-.wkd-all { color: var(--red); }
+.wkd-all { color: var(--red-ink); }
 .wkd-rl .row { grid-template-columns: 22px 34px 64px minmax(0, 1fr) auto; gap: 10px; padding: 8px 16px; box-shadow: inset 3px 0 0 var(--tc); }
 .wkd-rl .dtag { justify-self: start; }
 .wkd-rl .wkd-rface { width: 34px; height: 34px; box-shadow: 0 0 0 2px var(--tc); }
 .wkd-p { font-family: var(--display); font-weight: 900; font-size: 15px; text-align: right; }
 .wkd-r.p1 { background: color-mix(in srgb, var(--tc) 11%, transparent); }
-.wkd-r.out .end { color: var(--red); }
+.wkd-r.out .end { color: var(--red-ink); }
 .wkd-pen { display: grid; gap: 8px; padding: 12px 16px; background: color-mix(in srgb, var(--red) 7%, transparent); border-bottom: 1px solid var(--line); }
-.wkd-pen .wkd-lbl { color: var(--red); }
+.wkd-pen .wkd-lbl { color: var(--red-ink); }
 .wkd-penr { display: flex; align-items: center; gap: 10px; }
 .wkd-penn { flex: 1; min-width: 0; font-weight: 700; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .wkd-move { display: flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--dim); white-space: nowrap; }
 .wkd-move b { color: var(--text); font-weight: 800; }
-.wkd-move em { font-style: normal; font-weight: 800; font-size: 12px; color: var(--red); background: color-mix(in srgb, var(--red) 14%, transparent); border-radius: 5px; padding: 1px 5px; }
+.wkd-move em { font-style: normal; font-weight: 800; font-size: 12px; color: var(--red-ink); background: color-mix(in srgb, var(--red) 14%, transparent); border-radius: 5px; padding: 1px 5px; }
 .wkd-gseg { padding: 10px 16px 2px; }
 .row .main .wkd-grid { color: var(--text); font-weight: 700; }
-.row .main .wkd-grid.back { color: var(--red); }
+.row .main .wkd-grid.back { color: var(--red-ink); }
 .wkd-cond { padding: 12px 16px; border-top: 1px solid var(--line); display: grid; gap: 8px; justify-items: start; }
 /* flex, not the usual grid, so the last row stretches instead of leaving an empty tile */
 .wkd-cond .kv { width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); display: flex; flex-wrap: wrap; }

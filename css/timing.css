@@ -11,14 +11,14 @@
 .facts { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
 .fact { background: var(--panel2); border: 1px solid var(--line); border-radius: 11px; padding: 5px 10px; display: grid; align-content: center; min-width: 74px; }
 .fact small { color: var(--dim); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
-.fact b { font-size: 15px; font-weight: 800; } .fact.hot b { color: var(--red); } .fact .rainy { color: var(--blue); }
+.fact b { font-size: 15px; font-weight: 800; } .fact.hot b { color: var(--red-ink); } .fact .rainy { color: var(--blue); }
 .status { border-radius: 11px; padding: 5px 14px; display: grid; place-items: center; font-weight: 900; font-size: 15px; color: #000; background: var(--green); }
 .status.yellow { background: #facc15; } .status.red { background: var(--red); color: #fff; } .status.sc { background: var(--amber); } .status.off { background: var(--chip); color: var(--dim); }
 
 /* between sessions */
 .next { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 14px 16px; background: linear-gradient(100deg, color-mix(in srgb, var(--red) 18%, var(--panel)), var(--panel) 60%); }
 .next .what { flex: 1; min-width: 200px; display: grid; gap: 2px; }
-.next .what small { color: var(--red); font-weight: 900; font-size: 10.5px; letter-spacing: .6px; }
+.next .what small { color: var(--red-ink); font-weight: 900; font-size: 10.5px; letter-spacing: .6px; }
 .next .what b { font-family: var(--display); font-size: 18px; font-weight: 900; } .next .what span { color: var(--dim); font-weight: 600; font-size: 12.5px; }
 
 /* panels: two columns on a wide screen; on a phone, one group at a time under the sub-tabs */
