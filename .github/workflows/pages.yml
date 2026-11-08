@@ -26,9 +26,6 @@ jobs:
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
       - id: pages
         uses: actions/configure-pages@v6
       # side by side, as none needs another: the site's checks (a failure stops the publish), the headlines (from the live
@@ -46,6 +43,7 @@ jobs:
           ( curl -fsSL --max-time 20 "$SITE/pitlanes.json" -o live-pitlanes.json && node -e "JSON.parse(require('fs').readFileSync('live-pitlanes.json'))" && mv live-pitlanes.json pitlanes.json || rm -f live-pitlanes.json
             timeout 300 node scripts/pitlanes.mjs pitlanes.json ) > pitlanes.log 2>&1 &
           pit=$!
+          node --version   # the runner's own Node (no setup step: it saved a few seconds a publish)
           node tools/check.mjs
           wait $news || echo "::warning::headlines not updated (the last list stays)"; cat news.log
           wait $pit || echo "::warning::pit lanes not updated (the committed ones stay)"; cat pitlanes.log
