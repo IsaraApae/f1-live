@@ -200,14 +200,17 @@ export default {
       // the drivers who start further back than they qualified (the penalties): the rest only moved up into their places
       const back = rows.filter(e => num(e.position) && starts(e) > e.position)
         .map(e => `${esc((g.names(x.key, e.driver_number) || {}).name_acronym || e.driver_number)} P${e.position} → P${starts(e)}`);
-      return `${back.length ? `<p class="wkd-gridnote"><b>Starting grid changed after qualifying:</b> ${back.join(", ")}</p>` : ""}
-        <ol class="rows wkd-rl">${(every ? rows : rows.slice(0, TOP)).map(e => {
+      // once the grid has changed, the drivers are listed where they start (Russell at P7), each moved one marked with where they qualified
+      const onGrid = rows.some(starts), at = e => onGrid && grid.has(e.driver_number) ? grid.get(e.driver_number) : e.position;
+      const list = onGrid ? [...rows].sort((a, b) => (num(at(a)) ? at(a) : 999) - (num(at(b)) ? at(b) : 999)) : rows;
+      return `${back.length ? `<p class="wkd-gridnote"><b>Starting grid, changed after qualifying:</b> ${back.join(", ")}</p>` : ""}
+        <ol class="rows wkd-rl">${(every ? list : list.slice(0, TOP)).map(e => {
           const d = g.names(x.key, e.driver_number) || {}, c = hex(d.team_colour), [main, sub] = resultText(x, e), gp = starts(e);
-          return `<li class="row wkd-r${e.position === 1 ? " p1" : ""}${e.dnf || e.dns || e.dsq ? " out" : ""}" style="--tc:${esc(c)}">
-            <span class="wkd-p">${num(e.position) ? e.position : "–"}</span>
+          return `<li class="row wkd-r${at(e) === 1 ? " p1" : ""}${e.dnf || e.dns || e.dsq ? " out" : ""}" style="--tc:${esc(c)}">
+            <span class="wkd-p">${num(at(e)) ? at(e) : "–"}</span>
             ${d.last_name ? pic(d, 64, c).replace("wkd-face", "wkd-rface") : `<span class="face wkd-rface"></span>`}
             ${dtagHtml(e.driver_number, d.name_acronym, c, true)}
-            <span class="main"><b>${esc(d.first_name ? `${d.first_name} ${d.last_name}` : `Car ${e.driver_number}`)}</b><small>${esc(d.team_name || "")}${gp ? ` · <span class="wkd-grid${gp > e.position ? " back" : ""}">Starts P${gp}</span>` : ""}</small></span>
+            <span class="main"><b>${esc(d.first_name ? `${d.first_name} ${d.last_name}` : `Car ${e.driver_number}`)}</b><small>${esc(d.team_name || "")}${gp ? ` · <span class="wkd-grid${gp > e.position ? " back" : ""}">Qualified P${e.position}</span>` : ""}</small></span>
             <span class="end">${esc(main)}<small>${esc(sub)}</small></span>
           </li>`;
         }).join("")}</ol>
