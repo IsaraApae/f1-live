@@ -48,7 +48,7 @@ jobs:
           node tools/check.mjs
           wait $news || echo "::warning::headlines not updated (the last list stays)"; cat news.log
           wait $pit || echo "::warning::pit lanes not updated (the committed ones stay)"; cat pitlanes.log
-          rm -rf news.log pitlanes.log docs tools scripts   # README pictures and build tools: not part of the site
+          rm -rf news.log pitlanes.log docs scripts   # README pictures and build tools: not part of the site (tools/ goes after the stamp)
       # the published scripts and styles minified (about a quarter less to download), each with a source map so the browser's
       # developer tools still show the readable code. The code in the repository stays as it is. If esbuild can't be fetched,
       # or a minified script doesn't parse, the readable files go out instead: never a reason not to publish.
@@ -58,11 +58,15 @@ jobs:
           if npx --yes esbuild@0.28.2 $(find js -name "*.js") css/*.css --minify --sourcemap --outdir=. --outbase=. --allow-overwrite --log-level=warning; then
             for f in $(find js -name "*.js"); do cp "$f" "$RUNNER_TEMP/m.mjs"; node --check "$RUNNER_TEMP/m.mjs" || { readable "$f doesn't parse once minified"; break; }; done
           else readable "not minified (esbuild unavailable)"; fi
-      # a new cache name per commit, so installed apps pick up each release (scheduled runs of the same commit keep it)
-      - name: Stamp the service worker
+      # the release on everything that must change with it: a new cache name per commit, so installed apps pick up each release
+      # (scheduled runs of the same commit keep it), and the scripts' own addresses (?v=, tools/stamp.mjs), so Safari can't
+      # join a new page to the last release's scripts it still holds in memory
+      - name: Stamp the release
         run: |
           sed -i "s/^const VERSION = \"[^\"]*\";/const VERSION = \"${GITHUB_SHA::12}\";/" sw.js
           grep -q "${GITHUB_SHA::12}" sw.js
+          node tools/stamp.mjs "${GITHUB_SHA::12}"
+          rm -rf tools
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9   # v5.0.0 (leaves out .git and .github)
         with:
           path: .

@@ -86,7 +86,7 @@ Then open http://localhost:8000. There's no build step and nothing to install, a
 
 ## Publishing
 
-`.github/workflows/pages.yml` checks the code (`node tools/check.mjs`), collects the headlines, adds the pit lanes of circuits that have had a new race and publishes to GitHub Pages on every push to `main` and every 30 minutes. The published scripts and styles are minified by esbuild (with source maps, so the browser's developer tools show the readable code); the repository's code stays as it is. In the repository's **Settings → Pages**, the source must be **GitHub Actions**.
+`.github/workflows/pages.yml` checks the code (`node tools/check.mjs`), collects the headlines, adds the pit lanes of circuits that have had a new race and publishes to GitHub Pages on every push to `main` and every 30 minutes. The published scripts and styles are minified by esbuild (with source maps, so the browser's developer tools show the readable code); the repository's code stays as it is. Each release's scripts get their own addresses (`?v=` and the commit, through an import map that `tools/stamp.mjs` writes into `index.html`), because Safari keeps scripts in memory even across a reload: a page always loads one release whole, and if a release comes out while the site is open, a page that no longer fits reloads itself once. In the repository's **Settings → Pages**, the source must be **GitHub Actions**.
 
 `.github/workflows/check.yml` runs the same checks on pull requests. The workflows' actions are pinned to exact commits, and Dependabot opens a pull request each week when one has a new version.
 
