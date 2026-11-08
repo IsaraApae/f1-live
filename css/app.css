@@ -286,32 +286,32 @@ img[src$="#invert"], img.inv { filter: brightness(0) invert(1); }
 /* The LINE cards' look on the site: a driver is their code then their car number in the team's colour,
    every list a stack of rounded slots on the team's colour stripe, faces cut out with no coloured disc behind them, who moved
    outlined (red down, green up), digits all one width so positions line up. */
-:root { --slot-r: 8px; }
+:root { --slot-r: 8px; }   /* the rules below start :root:root so they win over each page's own stylesheet, loaded after this one */
 
 /* driver tag: RUS 63 */
-:root .dtag { box-shadow: none; background: none; height: auto; align-items: baseline; gap: 4px; border-radius: 0; overflow: visible; }
-:root .dtag .t { order: 0; background: none; padding: 0; color: var(--text); font-weight: 900; }
-:root .dtag .n { order: 1; background: none; min-width: 0; padding: 0; display: inline; font-weight: 700; font-size: .82em;
+:root:root .dtag { box-shadow: none; background: none; height: auto; align-items: baseline; gap: 4px; border-radius: 0; overflow: visible; }
+:root:root .dtag .t { order: 0; background: none; padding: 0; color: var(--text); font-weight: 900; }
+:root:root .dtag .n { order: 1; background: none; min-width: 0; padding: 0; display: inline; font-weight: 700; font-size: .82em;
   color: color-mix(in srgb, var(--tc) 75%, var(--text)); }
 
 /* lists: rounded slots on a team-colour stripe */
-:root .rows { display: grid; gap: 4px; padding: 8px; }
-:root .rows .row { border-top: 0; border-radius: var(--slot-r); background: var(--row); font-variant-numeric: tabular-nums;
+:root:root .rows { display: grid; gap: 4px; padding: 8px; }
+:root:root .rows .row { border-top: 0; border-radius: var(--slot-r); background: var(--row); font-variant-numeric: tabular-nums;
   box-shadow: inset 4px 0 0 var(--tc, transparent); }
-:root .rows .row.p1 { background: color-mix(in srgb, var(--tc) 12%, var(--row)); }
+:root:root .rows .row.p1 { background: color-mix(in srgb, var(--tc) 12%, var(--row)); }
 
 /* timing tower: the stripe on each row */
-:root .timing td:first-child { box-shadow: inset 4px 0 0 var(--tc, transparent); }
-:root .timing td { font-variant-numeric: tabular-nums; }
+:root:root .timing td:first-child { box-shadow: inset 4px 0 0 var(--tc, transparent); }
+:root:root .timing td { font-variant-numeric: tabular-nums; }
 
 /* faces: cut out, a team-colour bar under the big ones */
-:root .face, :root .tl-face, :root .cal-face { background: transparent; box-shadow: none; }
-:root .st-pod-face { background: transparent; box-shadow: none; border-radius: 0; border-bottom: 4px solid var(--tc); object-fit: contain; }
+:root:root .face, :root:root .tl-face, :root:root .cal-face { background: transparent; box-shadow: none; }
+:root:root .st-pod-face { background: transparent; box-shadow: none; border-radius: 0; border-bottom: 4px solid var(--tc); object-fit: contain; }
 
 /* who moved: outlined like the LINE cards (grid penalties on a qualifying) */
-:root .wkd-r:has(.wkd-grid.back) { background: color-mix(in srgb, var(--red) 8%, var(--row));
+:root:root .wkd-r:has(.wkd-grid.back) { background: color-mix(in srgb, var(--red) 8%, var(--row));
   box-shadow: inset 4px 0 0 var(--tc), inset 0 0 0 1px color-mix(in srgb, var(--red) 50%, transparent); }
-:root .wkd-pen { background: none; gap: 4px; }
-:root .wkd-penr { padding: 8px 12px; border-radius: var(--slot-r); background: color-mix(in srgb, var(--red) 8%, var(--row));
+:root:root .wkd-pen { background: none; gap: 4px; }
+:root:root .wkd-penr { padding: 8px 12px; border-radius: var(--slot-r); background: color-mix(in srgb, var(--red) 8%, var(--row));
   box-shadow: inset 4px 0 0 var(--tc, transparent), inset 0 0 0 1px color-mix(in srgb, var(--red) 50%, transparent); }
-:root .wkd-move em { display: none; }
+:root:root .wkd-move em { display: none; }

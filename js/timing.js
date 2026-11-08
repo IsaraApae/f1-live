@@ -682,7 +682,7 @@ function renderChampionship() {
   const pts = r => `<span class="pts">${r.total}${live ? `<small class="${r.add ? "" : "none"}">${r.add ? "+" + r.add : "–"}</small>` : ""}</span>`;
   el.innerHTML = champTab === "d"
     ? drivers.map(r => { const tc = r.num ? colour(driver(r.num)) : teamColour(r.team), d = { HeadshotUrl: r.headshot, ...driver(r.num), FirstName: r.first, LastName: r.last, TeamName: r.team };
-        return `<li style="--tc:${tc}"><span class="p">${r.now}</span>${move(r)}<img class="face" src="${photo(d, 64)}" alt="" style="background:${tc}">
+        return `<li style="--tc:${tc}"><span class="p">${r.now}</span>${move(r)}<img class="face" src="${photo(d, 64)}" alt="">
           <span class="nm"><span class="dtag small" style="${tagVars(tc)}"><span class="t">${esc(r.code)}</span></span><small>${esc(`${r.first || ""} ${r.last || ""}`)}</small></span>${pts(r)}</li>`; }).join("")
     : teams.map(r => `<li><span class="p">${r.now}</span>${move(r)}
           <span><img class="tl lg-light" src="${teamLogo(r.name)}" alt="" onerror="this.remove()"><img class="tl lg-dark" src="${teamLogo(r.name, true)}" alt="" onerror="this.remove()"></span>

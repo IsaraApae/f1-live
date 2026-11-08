@@ -88,7 +88,7 @@ export default {
       const lastOf = code => race && race.Results.find(x => x.Driver.code === code);
       const favHtml = [];
       if (fd) { const d = me(fd), lr = lastOf(favD);
-        favHtml.push(`<a class="card fav" href="#/driver/${esc(fd.Driver.driverId)}" style="--tc:${d.colour}"><img class="face" src="${esc(photo(d, 128))}" alt="" style="background:${d.colour}">
+        favHtml.push(`<a class="card fav" href="#/driver/${esc(fd.Driver.driverId)}" style="--tc:${d.colour}"><img class="face" src="${esc(photo(d, 128))}" alt="">
           <div><small>Your driver</small><b>${esc(fixText(fd.Driver.givenName))} ${esc(fixText(fd.Driver.familyName))}</b><small>${esc(d.TeamName || (fd.Constructors[0] || {}).name || "")}${lr ? ` · last race P${esc(lr.positionText)}` : ""}</small></div>
           <div class="big"><b>P${esc(fd.position)}</b><small>${esc(fd.points)} pts</small></div></a>`); }
       if (ft) { const i = teamInfo(ft.Constructor.constructorId) || {};
@@ -102,12 +102,12 @@ export default {
         const r = s.rounds.find(x => x.round === +race.round), key = r && (r.sessions.find(x => x.kind === "race") || {}).key;
         $("hPodium").innerHTML = `<section class="card"><h2 class="card-h"><span>Last race · ${esc(fixText(race.raceName).replace(/ Grand Prix$/, " GP"))}</span>${key ? `<a class="more" href="#/replay/${key}">Replay ${ICONS.chevron}</a>` : ""}</h2>
           <div class="podium">${podiumOrder(race.Results.slice(0, 3)).map(x => { const d = me(x);
-            return `<a${x.position === "1" ? ` class="p1"` : ""} href="#/driver/${esc(x.Driver.driverId)}" style="--tc:${d.colour}"><span class="p">P${esc(x.position)}</span><img class="face" src="${esc(photo(d, 112))}" alt="" loading="lazy" style="background:${d.colour}">
+            return `<a${x.position === "1" ? ` class="p1"` : ""} href="#/driver/${esc(x.Driver.driverId)}" style="--tc:${d.colour}"><span class="p">P${esc(x.position)}</span><img class="face" src="${esc(photo(d, 112))}" alt="" loading="lazy">
               <b>${esc(fixText(x.Driver.familyName))}</b><small>${x.position === "1" ? esc((x.Time || {}).time || "Winner") : esc((x.Time || {}).time || x.status)}</small></a>`; }).join("")}</div></section>`;
       }
       $("hStand").innerHTML = `<section class="card mini-stand"><h2 class="card-h"><span>Drivers' championship <small>after round ${esc(dl.round || "")}</small></span><a class="more" href="#/standings">All ${ICONS.chevron}</a></h2>
         <div class="rows">${dStand.slice(0, 5).map(x => { const d = me(x);
-          return `<a class="row" href="#/driver/${esc(x.Driver.driverId)}" style="--tc:${d.colour}"><span class="p">${esc(x.position)}</span><img class="face" src="${esc(photo(d, 64))}" alt="" loading="lazy" style="background:${d.colour}">
+          return `<a class="row" href="#/driver/${esc(x.Driver.driverId)}" style="--tc:${d.colour}"><span class="p">${esc(x.position)}</span><img class="face" src="${esc(photo(d, 64))}" alt="" loading="lazy">
             <span class="main"><b>${esc(fixText(x.Driver.givenName))} ${esc(fixText(x.Driver.familyName))}</b><small>${esc(d.TeamName || (x.Constructors.slice(-1)[0] || {}).name || "")}</small></span><span class="end">${esc(x.points)}<small>pts</small></span></a>`; }).join("")}</div></section>
         <section class="card mini-stand"><h2 class="card-h"><span>Teams</span><a class="more" href="#/standings/teams">All ${ICONS.chevron}</a></h2>
         <div class="rows">${cStand.slice(0, 5).map(x => { const i = teamInfo(x.Constructor.constructorId) || {};
