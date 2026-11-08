@@ -26,7 +26,7 @@ jobs:
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
       # each action at an exact commit (its version beside it), so a moved tag can't change what runs; Dependabot updates them
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09   # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
       - id: pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d   # v6.0.0
       # side by side, as none needs another: the site's checks (a failure stops the publish), the headlines (from the live
