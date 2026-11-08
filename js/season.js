@@ -1,7 +1,7 @@
 // The season: every Grand Prix weekend and its sessions, merged from Jolpica (rounds, circuit locations)
 // and OpenF1 (session keys for replays, flags, circuit keys for the track map). Plus the current drivers.
 import { of1, jolpica } from "./api.js";
-import { fixText, hex, SHORT } from "./util.js";
+import { fixText, hex, SHORT, f1img } from "./util.js";
 
 const KIND = { "Practice 1": "fp1", "Practice 2": "fp2", "Practice 3": "fp3", "Sprint Qualifying": "sq", "Sprint Shootout": "sq", "Sprint": "sprint", "Qualifying": "q", "Race": "race" };
 const LENGTH = { fp1: 60, fp2: 60, fp3: 60, sq: 45, sprint: 60, q: 60, race: 120 };   // minutes, when only the start is known
@@ -41,7 +41,7 @@ async function load(year) {
     return {
       round: +r.round, name: fixText(r.raceName), circuit: fixText(r.Circuit.circuitName), circuitId: r.Circuit.circuitId,
       locality: fixText(loc.locality), country: fixText(loc.country), lat: +loc.lat, lon: +loc.long,
-      flag: m.country_flag || "", circuitKey: m.circuit_key || null, meetingKey: m.meeting_key || null, circuitImage: m.circuit_image || "",
+      flag: f1img(m.country_flag, 144), circuitKey: m.circuit_key || null, meetingKey: m.meeting_key || null, circuitImage: m.circuit_image || "",
       start: list[0].start, end: list[list.length - 1].end, sprint: list.some(s => s.kind === "sprint"), sessions: list
     };
   });

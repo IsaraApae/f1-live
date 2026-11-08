@@ -1,6 +1,6 @@
 // Home: what's on now or next (with a countdown and the forecast), the weekend's sessions, your driver and team,
 // the last race's podium, the championship's top five and the latest headlines.
-import { esc, store, ICONS, fmtWhen, fmtTime, fmtDay, fmtRange, countdownHtml, photo, logoPair, tagVars, skeleton, tzName, ago, fixText, podiumOrder } from "../util.js";
+import { esc, store, ICONS, fmtWhen, fmtTime, fmtDay, fmtRange, countdownHtml, photo, logoPair, tagVars, skeleton, tzName, ago, fixText, podiumOrder, f1img } from "../util.js";
 import { jolpica, forecast, forecastFor } from "../api.js";
 import { currentSeason, drivers, liveSession, nextSession, allSessions } from "../season.js";
 import { loadNews } from "../news.js";
@@ -41,7 +41,7 @@ export default {
       next = n;
       const r = n.round;
       $("hHero").innerHTML = `<section class="hero home-hero">
-        ${r.circuitImage ? `<img class="trackimg" src="${esc(r.circuitImage)}" alt="" onerror="this.remove()">` : ""}
+        ${r.circuitImage ? `<img class="trackimg" src="${esc(f1img(r.circuitImage, 520))}" alt="" fetchpriority="high" onerror="this.remove()">` : ""}
         <div>
           <div class="kicker">Up next · Round ${r.round}${r.sprint ? ` · <span class="badge amber">Sprint weekend</span>` : ""}</div>
           <h2>${esc(r.name)}</h2>

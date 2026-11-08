@@ -1,6 +1,6 @@
 // The season calendar: every Grand Prix weekend in the viewer's own time zone, the next one up top with a live
 // countdown and the forecast, and the winners of finished races.
-import { esc, fmtTime, fmtDay, fmtWhen, fmtRange, tzName, countdownHtml, dtagHtml, ICONS, skeleton } from "../util.js";
+import { esc, fmtTime, fmtDay, fmtWhen, fmtRange, tzName, countdownHtml, dtagHtml, ICONS, skeleton, f1img } from "../util.js";
 import { jolpica, forecast, forecastFor } from "../api.js";
 import { season, currentSeason, liveSession, nextSession, pickedYear, pickYear } from "../season.js";
 import { shortName, wxHtml, flagImg } from "../calendar-ui.js";
@@ -114,7 +114,7 @@ export default {
       const target = r.sessions.find(x => x.start > now);
       const state = x => on && on.start === x.start ? "now" : x.end < now ? "done" : "";
       return `<section class="hero cal-next${on ? " is-live" : ""}">
-        ${r.circuitImage ? `<img class="cal-trk" src="${esc(r.circuitImage)}" alt="" onerror="this.remove()">` : ""}
+        ${r.circuitImage ? `<img class="cal-trk" src="${esc(f1img(r.circuitImage, 520))}" alt="" fetchpriority="high" onerror="this.remove()">` : ""}
         <div class="kicker">${on ? `<span class="badge red live">Live</span>` : ""}<span class="wkd-nw">${on ? "" : "Up next · "}Round ${r.round}</span>${r.sprint ? `<span class="badge amber">Sprint</span>` : ""}</div>
         <div class="cal-next-top">
           <a class="cal-next-id" href="#/calendar/${year}/${r.round}">
