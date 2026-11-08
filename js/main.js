@@ -123,11 +123,15 @@ setTheme(store.get("f1.theme", "dark"));
 // install as an app (and work offline for pages already seen)
 if ("serviceWorker" in navigator && location.protocol === "https:") {
   // a new release took over: load it now instead of running the old code until the next visit (not in the middle of a session or a film)
+  // (once the new version is installed and running: "controllerchange" didn't come in Chrome, 8 Nov 2026, so the page stayed old)
   const updating = !!navigator.serviceWorker.controller;
-  navigator.serviceWorker.addEventListener("controllerchange", () => { if (updating && !/^#\/(live|replay|battle)/.test(location.hash)) location.reload(); });
   // a phone's home-screen app is mostly brought back, not opened, and a browser only looks for a new version when a page
   // opens: so look again each time it comes back, or it keeps showing a release from days ago
-  navigator.serviceWorker.register("sw.js").then(reg => document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") reg.update().catch(() => {});
-  })).catch(() => {});
+  navigator.serviceWorker.register("sw.js").then(reg => {
+    reg.addEventListener("updatefound", () => {
+      const w = reg.installing;
+      if (updating && w) w.addEventListener("statechange", () => { if (w.state === "activated" && !/^#\/(live|replay|battle)/.test(location.hash)) location.reload(); });
+    });
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") reg.update().catch(() => {}); });
+  }).catch(() => {});
 }
