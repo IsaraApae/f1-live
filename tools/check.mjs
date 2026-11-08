@@ -70,6 +70,22 @@ if (shell) { const cached = new Set([...shell[1].matchAll(/"([^"]+)"/g)].map(m =
   if (worst > 0.001 || back) problems.push(`js/livepos.js: ${(worst * 100).toFixed(2)}% of a lap off, ${back} frames backwards (want under 0.1%, none)`);
 }
 
+// 5b. a yellow race control never cleared by name (Brazil 2026, sector 15) ends at the chequered flag
+// (timing.js needs a browser to load: its flagState is one self-contained function, so it's tried on its own)
+{
+  const src = (/export function flagState[\s\S]*?\n}\r?\n/.exec(read("js/timing.js")) || [""])[0].replace(/^export function flagState/, "function");
+  const flagState = src && vm.runInNewContext(`(${src})`);
+  if (!flagState) problems.push("tools/check.mjs: couldn't find flagState in js/timing.js");
+  else {
+    const msg = (Message, Flag, Sector) => ({ Message, Flag, Sector, Scope: Sector ? "Sector" : "Track", Category: "Flag" });
+    const run = [msg("DOUBLE YELLOW IN TRACK SECTOR 14", "DOUBLE YELLOW", 14), msg("DOUBLE YELLOW IN TRACK SECTOR 15", "DOUBLE YELLOW", 15),
+                 msg("CLEAR IN TRACK SECTOR 14", "CLEAR", 14)];
+    if (JSON.stringify(flagState(run).yellow) !== '{"15":2}') problems.push("js/timing.js flagState: sector 15 should still be double yellow before the flag");
+    const after = flagState([...run, msg("CHEQUERED FLAG", "CHEQUERED")]);
+    if (Object.keys(after.yellow).length || after.status !== "1") problems.push(`js/timing.js flagState: yellows left after the chequered flag: ${JSON.stringify(after.yellow)}`);
+  }
+}
+
 // 6. the publish's release stamp (tools/stamp.mjs) fits index.html: an import map naming every module, before any module
 // loads, and every script and preload tag at the release's address (else a publish would go out with plain addresses)
 try {
