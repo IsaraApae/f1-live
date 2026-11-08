@@ -125,5 +125,9 @@ if ("serviceWorker" in navigator && location.protocol === "https:") {
   // a new release took over: load it now instead of running the old code until the next visit (not in the middle of a session or a film)
   const updating = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener("controllerchange", () => { if (updating && !/^#\/(live|replay|battle)/.test(location.hash)) location.reload(); });
-  navigator.serviceWorker.register("sw.js").catch(() => {});
+  // a phone's home-screen app is mostly brought back, not opened, and a browser only looks for a new version when a page
+  // opens: so look again each time it comes back, or it keeps showing a release from days ago
+  navigator.serviceWorker.register("sw.js").then(reg => document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") reg.update().catch(() => {});
+  })).catch(() => {});
 }
