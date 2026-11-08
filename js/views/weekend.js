@@ -150,7 +150,7 @@ export default {
     }
 
     // this year's portrait of a driver (OpenF1's driver record)
-    const pic = (d, px, c) => `<img class="face wkd-face" src="${esc(photo({ HeadshotUrl: d.headshot_url, FirstName: d.first_name, LastName: d.last_name, TeamName: d.team_name }, px, year))}" alt="" loading="lazy" style="background:${esc(c)}" onerror="this.style.visibility='hidden'">`;
+    const pic = (d, px, c) => `<img class="face wkd-face" src="${esc(photo({ HeadshotUrl: d.headshot_url, FirstName: d.first_name, LastName: d.last_name, TeamName: d.team_name }, px, year))}" alt="" loading="lazy" style="--tc:${esc(c)}" onerror="this.style.visibility='hidden'">`;
 
     function podiumHtml() {
       const g = got[podiumKey];
@@ -206,7 +206,7 @@ export default {
       const pens = rows.filter(lost).sort((a, b) => starts(a) - starts(b));
       const panel = pens.length ? `<div class="wkd-pen"><small class="wkd-lbl">Grid penalties</small>${pens.map(e => {
           const d = g.names(x.key, e.driver_number) || {}, c = hex(d.team_colour);
-          return `<div class="wkd-penr">${dtagHtml(e.driver_number, d.name_acronym, c, true)}<span class="wkd-penn">${esc(d.last_name || `Car ${e.driver_number}`)}</span>
+          return `<div class="wkd-penr" style="--tc:${esc(c)}">${dtagHtml(e.driver_number, d.name_acronym, c, true)}<span class="wkd-penn">${esc(d.first_name ? `${d.first_name} ${d.last_name}` : d.last_name || `Car ${e.driver_number}`)}</span>
             <span class="wkd-move"><s>P${e.position}</s>→<b>P${starts(e)}</b><em>▼${lost(e)}</em></span></div>`;
         }).join("")}</div>` : "";
       const seg = changed ? `<div class="wkd-gseg"><div class="seg wide">
