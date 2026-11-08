@@ -48,6 +48,10 @@ try {
 } catch (e) { problems.push(`manifest.webmanifest: ${e.message}`); }
 const shell = existsSync(join(ROOT, "sw.js")) && /const SHELL = \[([\s\S]*?)\];/.exec(read("sw.js"));
 if (shell) for (const [, f] of shell[1].matchAll(/"([^"]+)"/g)) if (f !== "./" && !existsSync(join(ROOT, f))) warnings.push(`sw.js pre-caches ${f}, which doesn't exist`);
+// …and it pre-caches every script and stylesheet the site has: one left out isn't there offline after the next release (a
+// replay's timing screen imports js/livepos.js, so without it no saved replay opens offline)
+if (shell) { const cached = new Set([...shell[1].matchAll(/"([^"]+)"/g)].map(m => m[1]));
+  for (const f of [...walk("js"), ...readdirSync(join(ROOT, "css")).filter(n => n.endsWith(".css")).map(n => `css/${n}`)]) if (!cached.has(f)) problems.push(`sw.js: SHELL leaves out ${f}, so it isn't there offline`); }
 
 // 5. the live map's tracker (js/livepos.js): a car with known mini-sector times (10, 30, 10, 30, 20 s) and on-time marks
 {
