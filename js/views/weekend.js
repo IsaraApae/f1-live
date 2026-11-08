@@ -102,7 +102,9 @@ export default {
       if (got[k] && !got[k].err) return;
       const x = S.find(v => v.key === k);
       got[k] = { busy: true };
-      try { const [res, nm] = await Promise.all([of1(`session_result?session_key=${k}`, { ttl: ttlFor(x.end) }), names()]); got[k] = { res, names: nm }; }
+      // a qualifying also sets the starting grid, which penalties can change until the race (São Paulo 2026: Russell P2, starts 7th)
+      const grid = x.kind === "q" || x.kind === "sq" ? of1(`starting_grid?session_key=${k}`, { ttl: ttlFor(x.end + 2 * DAY) }).catch(() => []) : [];
+      try { const [res, nm, gr] = await Promise.all([of1(`session_result?session_key=${k}`, { ttl: ttlFor(x.end) }), names(), grid]); got[k] = { res, names: nm, grid: gr }; }
       catch (e) { got[k] = { err: true }; }
       if (!el.isConnected) return;
       paintRes(k);
@@ -193,13 +195,19 @@ export default {
       if (g.err) return `<p class="note-line">Couldn't load the results. <button class="btn small" type="button" data-retry="${x.key}">Try again</button></p>`;
       if (!g.res.length) return `<p class="note-line">No results for this session yet.</p>`;
       const rows = [...g.res].sort(byPos), every = all.has(x.key);
-      return `<ol class="rows wkd-rl">${(every ? rows : rows.slice(0, TOP)).map(e => {
-          const d = g.names(x.key, e.driver_number) || {}, c = hex(d.team_colour), [main, sub] = resultText(x, e);
+      const grid = new Map((g.grid || []).map(e => [e.driver_number, e.position]));
+      const starts = e => grid.has(e.driver_number) && grid.get(e.driver_number) !== e.position ? grid.get(e.driver_number) : null;
+      // the drivers who start further back than they qualified (the penalties): the rest only moved up into their places
+      const back = rows.filter(e => num(e.position) && starts(e) > e.position)
+        .map(e => `${esc((g.names(x.key, e.driver_number) || {}).name_acronym || e.driver_number)} P${e.position} → P${starts(e)}`);
+      return `${back.length ? `<p class="wkd-gridnote"><b>Starting grid changed after qualifying:</b> ${back.join(", ")}</p>` : ""}
+        <ol class="rows wkd-rl">${(every ? rows : rows.slice(0, TOP)).map(e => {
+          const d = g.names(x.key, e.driver_number) || {}, c = hex(d.team_colour), [main, sub] = resultText(x, e), gp = starts(e);
           return `<li class="row wkd-r${e.position === 1 ? " p1" : ""}${e.dnf || e.dns || e.dsq ? " out" : ""}" style="--tc:${esc(c)}">
             <span class="wkd-p">${num(e.position) ? e.position : "–"}</span>
             ${d.last_name ? pic(d, 64, c).replace("wkd-face", "wkd-rface") : `<span class="face wkd-rface"></span>`}
             ${dtagHtml(e.driver_number, d.name_acronym, c, true)}
-            <span class="main"><b>${esc(d.first_name ? `${d.first_name} ${d.last_name}` : `Car ${e.driver_number}`)}</b><small>${esc(d.team_name || "")}</small></span>
+            <span class="main"><b>${esc(d.first_name ? `${d.first_name} ${d.last_name}` : `Car ${e.driver_number}`)}</b><small>${esc(d.team_name || "")}${gp ? ` · <span class="wkd-grid${gp > e.position ? " back" : ""}">Starts P${gp}</span>` : ""}</small></span>
             <span class="end">${esc(main)}<small>${esc(sub)}</small></span>
           </li>`;
         }).join("")}</ol>
