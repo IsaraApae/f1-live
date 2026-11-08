@@ -70,9 +70,22 @@ if (shell) { const cached = new Set([...shell[1].matchAll(/"([^"]+)"/g)].map(m =
   if (worst > 0.001 || back) problems.push(`js/livepos.js: ${(worst * 100).toFixed(2)}% of a lap off, ${back} frames backwards (want under 0.1%, none)`);
 }
 
+// 6. the publish's release stamp (tools/stamp.mjs) fits index.html: an import map naming every module, before any module
+// loads, and every script and preload tag at the release's address (else a publish would go out with plain addresses)
+try {
+  const { stampHtml, modules: mods } = await import(new URL("./stamp.mjs", import.meta.url));
+  const out = stampHtml(read("index.html"), mods(ROOT), "0123456789ab"), files = mods(ROOT);
+  const map = JSON.parse((/<script type="importmap">([^<]*)<\/script>/.exec(out) || [])[1] || "{}").imports || {};
+  const missing = files.filter(f => map[`./${f}`] !== `./${f}?v=0123456789ab`);
+  if (missing.length) problems.push(`tools/stamp.mjs: the import map leaves out ${missing.join(", ")}`);
+  if (out.indexOf('type="importmap"') > out.search(/modulepreload|type="module"/)) problems.push("tools/stamp.mjs: the import map comes after a module is asked for");
+  for (const m of out.matchAll(/<(?:link rel="modulepreload" href|script type="module" src)="(js\/[^"]+)"/g)) if (!m[1].endsWith("?v=0123456789ab")) problems.push(`tools/stamp.mjs: ${m[1]} has no release address`);
+  [...out.matchAll(/<script(?![^>]*\b(?:src|type)=)[^>]*>([\s\S]*?)<\/script>/g)].forEach((m, i) => { try { new vm.Script(m[1]); } catch (e) { problems.push(`stamped index.html inline script ${i + 1}: ${e.message}`); } });
+} catch (e) { problems.push(`tools/stamp.mjs: ${e.message}`); }
+
 for (const w of warnings) console.warn(`warning: ${w}`);
 if (problems.length) { console.error(problems.map(p => `✗ ${p}`).join("\n\n")); process.exit(1); }
-// 6. a source that can't be reached (OpenF1 during a session looks like this to a browser) must not keep pages waiting: one
+// 7. a source that can't be reached (OpenF1 during a session looks like this to a browser) must not keep pages waiting: one
 // more try, then the last saved answer however old, and no more asking for a minute
 {
   const kept = new Map([["f1c:https://api.openf1.org/v1/sessions?year=1", JSON.stringify({ t: 1, v: ["old"] })], ["f1c:https://api.jolpi.ca/ergast/f1/1.json?limit=100", JSON.stringify({ t: 1, v: ["old"] })]]);

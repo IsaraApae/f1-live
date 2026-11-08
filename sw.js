@@ -38,7 +38,8 @@ self.addEventListener("fetch", e => {
 });
 
 async function cacheFirst(req) {
-  const cache = await caches.open(CACHE), hit = await cache.match(req);
+  // js/util.js?v=<release> (index.html's import map, tools/stamp.mjs) is this cache's js/util.js: each release has its own cache
+  const cache = await caches.open(CACHE), hit = await cache.match(req, { ignoreSearch: true });
   if (hit) return hit;
   const res = await fetch(fresh(req.url), { cache: "no-store" });   // this release's file, never an older stored copy
   if (res.ok) cache.put(req, res.clone()).catch(() => {});

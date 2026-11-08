@@ -39,12 +39,13 @@
   // a LINE card opens a replay, a full result or the Live tab (?replay=KEY, ?result=KEY, ?live): fetch that page's modules now,
   // alongside main.js, instead of one layer of imports at a time after it has started (the same for those pages' own #/ links)
   (function () {
+    var v = "";   // this release (the publish writes it, tools/stamp.mjs), so these preloads are the addresses the page imports
     var q = new URLSearchParams(location.search), h = location.hash, timing = ["timing.js", "livepos.js", "analysis.js", "geomap.js"], files = [];
     if (/^#\/replay\/\d+$/.test(h) || (!h && q.get("replay"))) files = ["views/replay.js"].concat(timing);
     else if (/^#\/result\/\d+$/.test(h) || (!h && q.get("result"))) files = ["views/result.js", "views/weekend.js", "calendar-ui.js"];
     else if (/^#\/live$/.test(h) || (!h && q.has("live"))) files = ["views/live.js"].concat(timing);
     else if (/^#\/calendar\/\d{4}\/\d+/.test(h)) files = ["views/weekend.js", "calendar-ui.js"];
-    files.forEach(function (f) { var l = document.createElement("link"); l.rel = "modulepreload"; l.href = "js/" + f; document.head.appendChild(l); });
+    files.forEach(function (f) { var l = document.createElement("link"); l.rel = "modulepreload"; l.href = "js/" + f + (v ? "?v=" + v : ""); document.head.appendChild(l); });
     // and the page's own stylesheet, at full speed rather than the low priority the page styles below get (only a head start:
     // their data-pages decide which page uses which)
     var page = h ? (/^#\/(\w+)/.exec(h) || [])[1] : q.get("replay") ? "replay" : q.get("result") ? "result" : q.has("live") ? "live" : "";
