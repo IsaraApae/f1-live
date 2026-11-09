@@ -195,6 +195,10 @@
 .wkd-cond .kv > div { background: var(--panel2); flex: 1 1 96px; }
 .wkd-cond .kv b { font-size: 17px; }
 .wkd-cond .skel { padding: 0; width: 100%; }
+.wkd-cond-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
+.wkd-cond-x { all: unset; cursor: pointer; color: var(--dim); font-size: 12px; font-weight: 800; padding: 2px 6px; margin: -2px -6px; border-radius: 6px; }
+.wkd-cond-x:hover { color: var(--text); }
+.wkd-cond-x:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .wkd-wet { color: var(--blue); }
 .wkd-tz { margin: 2px 4px 0; color: var(--dim); font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
 .wkd-tz svg { width: 14px; height: 14px; fill: currentColor; flex: 0 0 14px; }
