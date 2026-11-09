@@ -77,6 +77,7 @@ export default {
     const S = r.sessions;
     const got = {}, cond = {};            // session key → results / track conditions: { busy } | { err } | data
     const open = new Set(), all = new Set(), qOrder = new Set();   // qOrder: qualifyings switched back to their own order
+    const condHidden = new Set();          // sessions whose track conditions were hidden by hand (shown again from the button)
     // every finished session's results straight away (a weekend has at most seven, well within OpenF1's 30 requests a minute)
     for (const x of S.filter(x => x.key && phase(x, Date.now()) === "done")) open.add(x.key);
     if (focus) {   // opened for one session's full result ("Full result" on a LINE card): every driver, scrolled to once it's shown
@@ -244,11 +245,12 @@ export default {
 
     function condHtml(x) {
       const c = cond[x.key], R = Math.round;
-      if (!c) return `<div class="wkd-cond"><button class="btn small ghost" type="button" data-cond="${x.key}">${ICONS.temp}Track conditions</button></div>`;
+      if (!c || condHidden.has(x.key)) return `<div class="wkd-cond"><button class="btn small ghost" type="button" data-cond="${x.key}" aria-expanded="false">${ICONS.temp}Track conditions</button></div>`;
       if (c.busy) return `<div class="wkd-cond">${skeleton(1)}</div>`;
       if (c.err || !c.v) return `<p class="note-line">${c.err ? "Couldn't load the track conditions." : "No weather readings for this session."}</p>`;
       const v = c.v;
-      return `<div class="wkd-cond"><small class="wkd-lbl">Track conditions</small><div class="kv">
+      return `<div class="wkd-cond"><div class="wkd-cond-h"><small class="wkd-lbl">Track conditions</small>
+        <button class="wkd-cond-x" type="button" data-condhide="${x.key}" aria-expanded="true">Hide</button></div><div class="kv">
         ${v.air != null ? `<div><small>Air</small><b>${R(v.air)}°C</b></div>` : ""}
         ${v.trkLo != null ? `<div><small>Track</small><b>${R(v.trkLo) === R(v.trkHi) ? R(v.trkLo) : `${R(v.trkLo)}–${R(v.trkHi)}`}°C</b></div>` : ""}
         ${v.wind != null ? `<div><small>Wind</small><b>${R(v.wind)} km/h</b></div>` : ""}
@@ -276,10 +278,12 @@ export default {
     }
 
     el.addEventListener("click", e => {
-      const b = e.target.closest("[data-toggle],[data-all],[data-cond],[data-retry],[data-gview]");
+      const b = e.target.closest("[data-toggle],[data-all],[data-cond],[data-condhide],[data-retry],[data-gview]");
       if (!b) return;
-      const k = +(b.dataset.toggle || b.dataset.all || b.dataset.cond || b.dataset.retry || b.dataset.gview), i = S.findIndex(x => x.key === k);
+      const k = +(b.dataset.toggle || b.dataset.all || b.dataset.cond || b.dataset.condhide || b.dataset.retry || b.dataset.gview), i = S.findIndex(x => x.key === k);
       if (b.dataset.gview) { qOrder.has(k) ? qOrder.delete(k) : qOrder.add(k); paintRes(k); return; }
+      if (b.dataset.condhide) { condHidden.add(k); paintRes(k); return; }
+      if (b.dataset.cond && condHidden.delete(k) && cond[k] && cond[k].v) { paintRes(k); return; }   // shown again: no new request
       if (b.dataset.toggle) {
         if (open.has(k)) open.delete(k);
         else { open.add(k); loadResults(k); loadCond(k); }   // opened by hand: the conditions too
