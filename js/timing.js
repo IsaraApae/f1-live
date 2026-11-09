@@ -484,8 +484,10 @@ function renderHeader() {
   chip.textContent = label; chip.className = "status " + cls;
   const w = S.WeatherData;
   for (const id of ["airBox", "trackTBox", "windBox"]) show(id, !!w);
-  show("rainBox", w && w.Rainfall === "1");
-  show("chanceBox", mode === "live" && rainChance != null && !(w && w.Rainfall === "1"));
+  // raining at the circuit right now, from the track's own weather station: Yes or No whenever there's a reading
+  const wet = !!w && +w.Rainfall > 0;   // ("1" or "0" from F1's feed and OpenF1)
+  show("rainBox", !!w); $("rain").textContent = wet ? "Yes" : "No"; $("rain").className = wet ? "rainy" : "";
+  show("chanceBox", mode === "live" && rainChance != null && !wet);
   if (rainChance != null) $("chance").textContent = `${Math.round(rainChance)}%`;
   if (w) { $("air").textContent = `${(+w.AirTemp).toFixed(1)}°`; $("trackT").textContent = `${(+w.TrackTemp).toFixed(1)}°`; $("wind").textContent = `${(+w.WindSpeed * 3.6).toFixed(0)} km/h`; }
 }
@@ -1390,7 +1392,7 @@ function markup(replay) {
       <div class="fact" id="airBox" hidden><small>Air</small><b id="air"></b></div>
       <div class="fact" id="trackTBox" hidden><small>Track</small><b id="trackT"></b></div>
       <div class="fact" id="windBox" hidden><small>Wind</small><b id="wind"></b></div>
-      <div class="fact" id="rainBox" hidden><small>Rain</small><b class="rainy">Yes</b></div>
+      <div class="fact" id="rainBox" hidden><small>Rain</small><b id="rain"></b></div>
       <div class="fact" id="chanceBox" hidden><small>Rain chance</small><b id="chance"></b></div>
     </div>
   </section>
