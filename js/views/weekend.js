@@ -18,6 +18,8 @@ const cdText = ms => { const [[d], [h], [m], [s]] = countdown(ms); return `${d ?
 const raceTime = s => { if (!s) return ""; const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, sec = (s % 60).toFixed(3).padStart(6, "0"); return h ? `${h}:${p2(m)}:${sec}` : `${m}:${sec}`; };
 const gapText = g => g == null ? "" : typeof g === "number" ? (g > 0 ? `+${g.toFixed(3)}` : "") : String(g);
 const num = v => typeof v === "number";
+// ▲3 in green (places gained) or ▼5 in red (lost), as the LINE cards show them; nothing for no move
+const mvHtml = n => n ? `<em class="wkd-mv ${n > 0 ? "up" : "down"}">${n > 0 ? "▲" : "▼"}${Math.abs(n)}</em>` : "";
 const byPos = (a, b) => (num(a.position) ? a.position : 999) - (num(b.position) ? b.position : 999);
 
 // what a result row says on the right: [main, small line underneath]
@@ -104,7 +106,14 @@ export default {
       got[k] = { busy: true };
       // a qualifying also sets the starting grid, which penalties can change until the race (São Paulo 2026: Russell P2, starts 7th)
       const grid = x.kind === "q" || x.kind === "sq" ? of1(`starting_grid?session_key=${k}`, { ttl: ttlFor(x.end + 2 * DAY) }).catch(() => []) : [];
-      try { const [res, nm, gr] = await Promise.all([of1(`session_result?session_key=${k}`, { ttl: ttlFor(x.end) }), names(), grid]); got[k] = { res, names: nm, grid: gr }; }
+      // a race or sprint: where each car started, for the places gained (its qualifying's starting grid, else that qualifying's order)
+      const qs = x.kind === "race" || x.kind === "sprint" ? S.find(v => v.kind === (x.kind === "race" ? "q" : "sq") && v.key) : null;
+      const from = qs ? of1(`starting_grid?session_key=${qs.key}`, { ttl: ttlFor(x.end) }).catch(() => [])
+        .then(gr => gr.length ? gr : of1(`session_result?session_key=${qs.key}`, { ttl: ttlFor(qs.end) }).catch(() => [])) : [];
+      try {
+        const [res, nm, gr, fr] = await Promise.all([of1(`session_result?session_key=${k}`, { ttl: ttlFor(x.end) }), names(), grid, from]);
+        got[k] = { res, names: nm, grid: gr, from: new Map(fr.filter(e => num(e.position)).map(e => [e.driver_number, e.position])) };
+      }
       catch (e) { got[k] = { err: true }; }
       if (!el.isConnected) return;
       paintRes(k);
@@ -152,6 +161,9 @@ export default {
     // this year's portrait of a driver (OpenF1's driver record)
     const pic = (d, px, c) => `<img class="face wkd-face" src="${esc(photo({ HeadshotUrl: d.headshot_url, FirstName: d.first_name, LastName: d.last_name, TeamName: d.team_name }, px, year))}" alt="" loading="lazy" style="--tc:${esc(c)}" onerror="this.style.visibility='hidden'">`;
 
+    // places a car gained (+) or lost (-) in a race or sprint since the start; null if its start isn't known
+    const gained = (g, e) => g.from && num(e.position) && g.from.has(e.driver_number) ? g.from.get(e.driver_number) - e.position : null;
+
     function podiumHtml() {
       const g = got[podiumKey];
       if (!g || g.busy) return `<small class="wkd-lbl">Podium</small>${skeleton(1)}`;
@@ -159,7 +171,7 @@ export default {
       const top = [...g.res].sort(byPos).filter(e => num(e.position)).slice(0, 3);
       return `<small class="wkd-lbl">Podium</small><div class="wkd-pods">${podiumOrder(top).map(e => {
         const d = g.names(podiumKey, e.driver_number) || {}, c = hex(d.team_colour);
-        return `<div class="wkd-pd${+e.position === 1 ? " p1" : ""}" style="--tc:${esc(c)}"><span class="p">${e.position}</span>${d.last_name ? pic(d, 112, c) : ""}${dtagHtml(e.driver_number, d.name_acronym, c, true)}
+        return `<div class="wkd-pd${+e.position === 1 ? " p1" : ""}" style="--tc:${esc(c)}"><span class="wkd-pp"><span class="p">${e.position}</span>${mvHtml(gained(g, e))}</span>${d.last_name ? pic(d, 112, c) : ""}${dtagHtml(e.driver_number, d.name_acronym, c, true)}
           <b>${esc(d.last_name || `Car ${e.driver_number}`)}</b><small>${esc(d.team_name || "")}</small></div>`;
       }).join("")}</div>`;
     }
@@ -209,19 +221,21 @@ export default {
           return `<div class="wkd-penr" style="--tc:${esc(c)}">${dtagHtml(e.driver_number, d.name_acronym, c, true)}<span class="wkd-penn">${esc(d.first_name ? `${d.first_name} ${d.last_name}` : d.last_name || `Car ${e.driver_number}`)}</span>
             <span class="wkd-move"><s>P${e.position}</s>→<b>P${starts(e)}</b><em>▼${lost(e)}</em></span></div>`;
         }).join("")}</div>` : "";
+      // ▲/▼ under the time (so a phone keeps the name's width): a race's or sprint's places since the start; on the starting grid, the places against qualifying (▲ for who moved up into the gaps)
+      const mv = e => onGrid ? (grid.has(e.driver_number) && num(e.position) ? e.position - grid.get(e.driver_number) : null) : gained(g, e);
       const seg = changed ? `<div class="wkd-gseg"><div class="seg wide">
           <button type="button" data-gview="${x.key}" aria-pressed="${onGrid}">Starting grid</button>
           <button type="button" data-gview="${x.key}" aria-pressed="${!onGrid}">Qualifying</button></div></div>` : "";
       return `${panel}${seg}
         <ol class="rows wkd-rl">${(every ? list : list.slice(0, TOP)).map(e => {
           const d = g.names(x.key, e.driver_number) || {}, c = hex(d.team_colour), [main, sub] = resultText(x, e);
-          const mark = !lost(e) ? "" : onGrid ? `▼${lost(e)} · Qualified P${e.position}` : `Starts P${starts(e)}`;
+          const mark = !lost(e) ? "" : onGrid ? `Qualified P${e.position}` : `Starts P${starts(e)}`;
           return `<li class="row wkd-r${at(e) === 1 ? " p1" : ""}${e.dnf || e.dns || e.dsq ? " out" : ""}" style="--tc:${esc(c)}">
             <span class="wkd-p">${num(at(e)) ? at(e) : "–"}</span>
             ${d.last_name ? pic(d, 64, c).replace("wkd-face", "wkd-rface") : `<span class="face wkd-rface"></span>`}
             ${dtagHtml(e.driver_number, d.name_acronym, c, true)}
             <span class="main"><b>${esc(d.first_name ? `${d.first_name} ${d.last_name}` : `Car ${e.driver_number}`)}</b><small>${esc(d.team_name || "")}</small>${mark ? `<small class="wkd-grid back">${mark}</small>` : ""}</span>
-            <span class="end">${esc(main)}<small>${esc(sub)}</small></span>
+            <span class="end">${esc(main)}<small>${mvHtml(mv(e))}${mv(e) && sub ? " " : ""}${esc(sub)}</small></span>
           </li>`;
         }).join("")}</ol>
         ${rows.length > TOP ? `<button class="wkd-all" type="button" data-all="${x.key}">${every ? `Show top ${TOP}` : `Show all ${rows.length}`}</button>` : ""}

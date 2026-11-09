@@ -171,6 +171,11 @@
 .wkd-rl .row { grid-template-columns: 22px 34px 64px minmax(0, 1fr) auto; gap: 10px; padding: 8px 16px; box-shadow: inset 3px 0 0 var(--tc); }
 .wkd-rl .dtag { justify-self: start; }
 .wkd-rl .wkd-rface { width: 34px; height: 34px; box-shadow: 0 0 0 2px var(--tc); }
+/* ▲3 / ▼5: places gained (green) or lost (red) on a light tint, as on the LINE cards */
+.wkd-mv { font-style: normal; font-weight: 800; font-size: 11.5px; line-height: 1.5; border-radius: 5px; padding: 0 5px; white-space: nowrap; }
+.wkd-mv.up { color: var(--green); background: color-mix(in srgb, var(--green) 14%, transparent); }
+.wkd-mv.down { color: var(--red-ink); background: color-mix(in srgb, var(--red) 14%, transparent); }
+.wkd-pp { display: flex; align-items: center; gap: 6px; }
 .wkd-p { font-family: var(--display); font-weight: 900; font-size: 15px; text-align: right; }
 .wkd-r.p1 { background: color-mix(in srgb, var(--tc) 11%, transparent); }
 .wkd-r.out .end { color: var(--red-ink); }

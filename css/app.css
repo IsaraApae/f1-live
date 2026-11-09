@@ -322,4 +322,5 @@ img[src$="#invert"], img.inv { filter: brightness(0) invert(1); }
 :root:root .wkd-pen { background: none; gap: 4px; }
 :root:root .wkd-penr { padding: 8px 12px; border-radius: var(--slot-r); background: color-mix(in srgb, var(--red) 8%, var(--row));
   box-shadow: inset 4px 0 0 var(--tc, transparent), inset 0 0 0 1px color-mix(in srgb, var(--red) 50%, transparent); }
-:root:root .wkd-move em { display: none; }
+:root:root .wkd-move b, :root:root .wkd-move em { color: var(--red-ink); }
+:root:root .wkd-move em { background: none; padding: 0; margin-left: -2px; }
