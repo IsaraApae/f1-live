@@ -30,6 +30,7 @@
 .cal-sched .main b { display: flex; align-items: center; gap: 7px; }
 .cal-wx { display: block; }
 .cal-wx:not(:empty) { margin-top: 4px; }
+.cal-wx.wait { visibility: hidden; }   /* room kept for a forecast that's on its way (calendar.js: wxDue) */
 .cal-wx .wx { gap: 9px; font-size: 11.5px; }
 .cal-acts { display: flex; gap: 8px; flex-wrap: wrap; }
 /* wide screens: the weekend's sessions side by side */

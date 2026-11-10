@@ -7,6 +7,10 @@ import { shortName, wxHtml, flagImg } from "../calendar-ui.js";
 import { standings as seasonStandings, faceHtml } from "../stats.js";
 
 const DAY = 86400000, FORECAST_DAYS = 16 * DAY;   // Open-Meteo forecasts 16 days ahead
+// a session of round r whose forecast is on its way: its row keeps room for it, so the rows below don't jump down when it
+// arrives. The room is an ordinary forecast that isn't shown (.cal-wx.wait), so it takes one line or two as the real one will.
+const wxDue = (r, x, now) => x.end > now && x.start - now < FORECAST_DAYS && isFinite(r.lat);
+const WX_ROOM = wxHtml({ sky: { label: "Cloudy", kind: "cloud" }, rain: 20, temp: 20, wind: 15 });
 const FIRST_YEAR = 2023;                          // OpenF1's first season (session times, flags, replays)
 // Jolpica has no team colours: this year's liveries, older team names kept for past seasons
 const TEAM_COLOUR = { mercedes: "#00D7B6", ferrari: "#ED1131", mclaren: "#F47600", red_bull: "#4781D7", aston_martin: "#229971", alpine: "#00A1E8",
@@ -96,16 +100,17 @@ export default {
         </section>
         <div class="cal-list">${listHtml(rounds, wins, live, next, now)}</div>`;
 
-      // the next weekend's forecast, once it's within reach
+      // the next weekend's forecast, once it's within reach (each session's row has kept room for it: wxDue)
       if (next && next.start - now < FORECAST_DAYS && isFinite(next.lat)) {
         const mine = gen;
-        forecast(next.lat, next.lon).then(f => {
-          if (mine !== gen || !el.isConnected || !f) return;
+        forecast(next.lat, next.lon).catch(() => null).then(f => {
+          if (mine !== gen || !el.isConnected) return;
           next.sessions.forEach((x, i) => {
-            const slot = el.querySelector(`[data-wx="${i}"]`);
-            if (slot && x.end > Date.now()) slot.innerHTML = wxHtml(forecastFor(f, x.start, x.end));
+            const slot = el.querySelector(`[data-wx="${i}"]`); if (!slot) return;
+            slot.classList.remove("wait");   // (no forecast after all: the room closes up)
+            slot.innerHTML = f && x.end > Date.now() ? wxHtml(forecastFor(f, x.start, x.end)) : "";
           });
-        }).catch(() => {});
+        });
       }
     }
 
@@ -131,7 +136,7 @@ export default {
         <ul class="rows cal-sched">${r.sessions.map((x, i) => `
           <li class="row ${state(x)}">
             <span class="k">${esc(x.short)}</span>
-            <span class="main"><b>${esc(x.name)}${state(x) === "now" ? ` <span class="badge red live">Live</span>` : ""}</b><small>${fmtDay(x.start)}</small><span class="cal-wx" data-wx="${i}"></span></span>
+            <span class="main"><b>${esc(x.name)}${state(x) === "now" ? ` <span class="badge red live">Live</span>` : ""}</b><small>${fmtDay(x.start)}</small><span class="cal-wx${wxDue(r, x, now) ? " wait" : ""}" data-wx="${i}">${wxDue(r, x, now) ? WX_ROOM : ""}</span></span>
             <span class="end">${fmtTime(x.start)}<small>to ${fmtTime(x.end)}</small></span>
           </li>`).join("")}
         </ul>
