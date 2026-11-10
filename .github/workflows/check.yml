@@ -2,6 +2,9 @@
 name: check
 on:
   pull_request:
+# it only reads the code (the repository's default already; said here so it stays that way)
+permissions:
+  contents: read
 jobs:
   check:
     runs-on: ubuntu-26.04
