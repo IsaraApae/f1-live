@@ -112,7 +112,7 @@ export function of1(path, { ttl = 0, forever = false } = {}) {
 const down = {};   // source -> until when it's not asked: it can't be reached, so no page should wait for it
 async function getJSON(url, source) {
   for (let i = 0; i < 4; i++) {
-    if (Date.now() < (down[source] || 0)) throw new Error(`${source} can't be reached`);
+    if (Date.now() < (down[source] || 0)) { say(source, false); throw new Error(`${source} can't be reached`); }   // (not "busy" any more: the note would stay up)
     let r; try { r = await fetch(url); } catch (e) { r = null; }
     if (!r) { if (i) down[source] = Date.now() + 60000; else await sleep(1500); continue; }
     if (r && r.ok) { say(source, false); return r.json(); }
