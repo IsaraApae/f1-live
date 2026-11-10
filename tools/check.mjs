@@ -86,6 +86,25 @@ if (shell) { const cached = new Set([...shell[1].matchAll(/"([^"]+)"/g)].map(m =
   }
 }
 
+// 5c. what comes from elsewhere (F1's feed; OpenF1 in a replay) can't bring markup onto the page or reach every object on it:
+// a team colour is hex digits or it's grey (js/util.js: hex), and a change filed under "__proto__" or "constructor" is left
+// out (js/timing.js: merge, tried on its own like flagState)
+{
+  const { hex, tagVars } = await import(new URL("../js/util.js", import.meta.url));
+  for (const c of ['fff" onmouseover="x', 'fff"><img src=x onerror=alert(1)>', "red;background:url(//x)", "27F4D2 ", "27F4D", 123456, null, undefined, { toString: () => "ffffff" }])
+    if (hex(c) !== "#777777") problems.push(`js/util.js hex: ${JSON.stringify(c)} came through as ${hex(c)}`);
+  if (hex("27F4D2") !== "#27F4D2" || hex("#27f4d2") !== "#27f4d2") problems.push("js/util.js hex: an ordinary team colour didn't come through as it is");
+  if (/["<>]/.test(tagVars('fff"><i>'))) problems.push("js/util.js tagVars: a colour can close its attribute");
+  const src = (/\nfunction merge[\s\S]*?\n}\r?\n/.exec(read("js/timing.js")) || [""])[0];
+  if (!src) problems.push("tools/check.mjs: couldn't find merge in js/timing.js");
+  else {
+    const got = vm.runInNewContext(`${src}
+      const t = merge({ a: { b: 1 } }, JSON.parse('{"__proto__":{"p1":1},"constructor":{"prototype":{"p2":1}},"a":{"__proto__":{"p3":1},"c":2},"_kf":true}'));
+      JSON.stringify([({}).p1, ({}).p2, ({}).p3, t.a.b, t.a.c, "_kf" in t])`);
+    if (got !== "[null,null,null,1,2,false]") problems.push(`js/timing.js merge: a change under "__proto__" or "constructor" reached every object, or an ordinary change was lost: ${got}`);
+  }
+}
+
 // 6. the publish's release stamp (tools/stamp.mjs) fits index.html: an import map naming every module, before any module
 // loads, and every script and preload tag at the release's address (else a publish would go out with plain addresses)
 try {
@@ -104,8 +123,6 @@ try {
   [...out.matchAll(/<script(?![^>]*\b(?:src|type)=)[^>]*>([\s\S]*?)<\/script>/g)].forEach((m, i) => { try { new vm.Script(m[1]); } catch (e) { problems.push(`stamped index.html inline script ${i + 1}: ${e.message}`); } });
 } catch (e) { problems.push(`tools/stamp.mjs: ${e.message}`); }
 
-for (const w of warnings) console.warn(`warning: ${w}`);
-if (problems.length) { console.error(problems.map(p => `✗ ${p}`).join("\n\n")); process.exit(1); }
 // 7. a source that can't be reached (OpenF1 during a session looks like this to a browser) must not keep pages waiting: one
 // more try, then the last saved answer however old, and no more asking for a minute
 {
@@ -124,5 +141,9 @@ if (problems.length) { console.error(problems.map(p => `✗ ${p}`).join("\n\n"))
   if (Date.now() - t0 > 5000) problems.push(`js/api.js: pages waited ${Date.now() - t0} ms for a source that can't be reached`);
   delete globalThis.localStorage; delete globalThis.fetch;
 }
-console.log(`OK: ${modules.length} modules and ${classic.length} classic scripts parse, ${views.length} route pages exist, manifest fine, live tracker right, unreachable sources don't hold pages up.`);
+
+// (after the last check: 7's problems used to be found after this had already said OK)
+for (const w of warnings) console.warn(`warning: ${w}`);
+if (problems.length) { console.error(problems.map(p => `✗ ${p}`).join("\n\n")); process.exit(1); }
+console.log(`OK: ${modules.length} modules and ${classic.length} classic scripts parse, ${views.length} route pages exist, manifest fine, live tracker right, colours and feed changes can't carry markup, unreachable sources don't hold pages up.`);
 process.exit(0);   // (js/api.js's cache timers would otherwise keep this running for minutes)
