@@ -94,6 +94,7 @@ function connect() {
       if (m.type === 3 && m.result) {  // the full state, then changes as they happen
         S = {}; radioSeen = null; rcSeen = null;
         for (const [topic, data] of Object.entries(m.result)) apply(topic, data, now());
+        gotState = true; frame();   // (drawn now, so the panels can come in: settle)
       } else if (m.type === 1 && Array.isArray(m.arguments)) {
         const [topic, data, ts] = m.arguments;
         if (typeof topic === "string") apply(topic, data, utc(ts) || now());
@@ -103,7 +104,7 @@ function connect() {
   sock.onclose = () => {
     clearInterval(pingTimer);
     if (mode !== "live" || sock !== ws) return;   // left the page, or a replay closed it on purpose
-    setLive("offline");
+    setLive("offline"); gotState = true;   // (nothing to wait for: the panels come in as they are)
     retryTimer = setTimeout(connect, Math.min(30000, 2000 * 2 ** retry++));
   };
 }
@@ -915,9 +916,11 @@ function renderPits() {
 let sched = null, nextKey = "";
 async function loadSchedule() {
   try { const s = await currentSeason(); sched = allSessions(s.rounds).sort((a, b) => a.start - b.start); nextKey = ""; } catch (e) {}
+  schedDone = true; frame();   // (the Next session card is in or isn't: settle)
 }
 function renderNext() {
-  const t = Date.now(), on = mode === "live" && sched && ((S.SessionStatus || {}).Status || "") !== "Started" && !sched.some(s => t >= s.start - 15 * 60000 && t <= s.end + 30 * 60000);
+  // (not before F1's feed has said whether a session is on, while the tab opens: the card would come in and then be pushed down by the session bar's facts, or go again)
+  const t = Date.now(), on = mode === "live" && sched && (gotState || !unsettled) && ((S.SessionStatus || {}).Status || "") !== "Started" && !sched.some(s => t >= s.start - 15 * 60000 && t <= s.end + 30 * 60000);
   const next = on && sched.find(s => s.start > t);
   show("next", !!next);
   if (!next) return;
@@ -1562,7 +1565,15 @@ function frame() {
   }
   else if (++tick % 8 === 0) renderRadio();   // "x min ago"
   renderClock();
+  if (unsettled && (gotState && schedDone || Date.now() > settleBy)) settle();
 }
+// The Live tab while it opens: the session bar fills in (its facts wrap onto a second row on a phone) and, between sessions,
+// the Next session card comes in under it, both after the first paint. Drawn empty straight away, the panels were pushed
+// down the page as that happened. So they stay unseen (.timing.settling) until F1's feed has given the session and the
+// calendar has said whether there's a Next session card, and then appear where they belong. The feed usually answers in 2 to
+// 3 seconds; if it hasn't in 6 the panels come in anyway, and at once if it can't be reached at all.
+let unsettled = null, gotState = false, schedDone = false, settleBy = 0;
+function settle() { unsettled.classList.remove("settling"); unsettled = null; }
 
 const timers = [];
 const offs = [];
@@ -1581,6 +1592,8 @@ export function mountTiming(el, { replay = null, app = null } = {}) {
   follow = store.get("f1.follow", null); posPick = follow; hiddenCols = new Set(store.get("f1.hide", []));
   el.insertAdjacentHTML("beforeend", markup(!!replay));
   el.classList.add("timing");
+  gotState = schedDone = false; settleBy = Date.now() + 6000; unsettled = replay ? null : el;
+  if (unsettled) el.classList.add("settling");
   wire(el);
   applyColumns();
   pressView();
@@ -1610,7 +1623,7 @@ function stop() {
   if (ws) { const old = ws; ws = null; try { old.close(); } catch (e) {} }
   audio.pause();
   A.stop();
-  geoToken++;
+  geoToken++; unsettled = null;
   const making = geoMaking; geoMaking = null;
   if (making) making.then(m => m.destroy()).catch(() => {});   // also one still being made
   geo = null;

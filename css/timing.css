@@ -8,6 +8,7 @@
 .sb-ev { min-width: 0; flex: 1; }
 .sb-ev b { display: block; font-family: var(--display); font-size: 19px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
 .sb-ev span { color: var(--dim); font-size: 12px; font-weight: 600; }
+.sb-ev span:empty::before { content: "\a0"; }   /* its line is there before the circuit's name is, so nothing moves down when it comes */
 .facts { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
 .fact { background: var(--panel2); border: 1px solid var(--line); border-radius: 11px; padding: 5px 10px; display: grid; align-content: center; min-width: 74px; }
 .fact small { color: var(--dim); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
@@ -23,6 +24,9 @@
 
 /* panels: two columns on a wide screen; on a phone, one group at a time under the sub-tabs */
 .seg.tsubs { display: none; }
+/* Live, while it opens: the panels wait unseen until the session bar and the Next session card above them have settled
+   (timing.js: settle), instead of being drawn empty and then pushed down the page */
+.timing.settling .tsubs, .timing.settling .tgrid { visibility: hidden; }
 .tgrid { display: grid; grid-template-columns: minmax(0, 2.1fr) minmax(360px, 1fr); gap: 12px; align-items: start; }
 .tcol { display: grid; gap: 12px; align-content: start; min-width: 0; }
 .panel .card-h { padding: 10px 14px; }
