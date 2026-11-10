@@ -4,6 +4,9 @@
 // util.js (8 Nov 2026: the Calendar's import of f1img failed on iPhones until the app was closed). With an address per
 // release, a reload always loads one release whole. Browsers without import maps (Safari before 16.4) load the plain
 // addresses, as before.
+// The stylesheets get the same ?v= on their own tags, so a page is never drawn by one release's scripts in the last one's
+// styles: without it the outgoing service worker answered css/timing.css from its own cache while the scripts came new, and
+// the Live tab, a replay or a lap battle (which don't reload for a new release) kept that mix until the next visit.
 // Run in the folder that's published: node tools/stamp.mjs <release>   (rewrites index.html; exit 1 if anything didn't fit)
 import { readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
@@ -20,6 +23,7 @@ export function stampHtml(html, files, v) {
     ["the import map, before anything loads a module", /(<meta name="viewport"[^>]*>)/, `$1\n<script type="importmap">${map}</script>`],
     ["the modulepreload tags", /(<link rel="modulepreload" href="js\/[\w/.-]+\.js)"/g, `$1?v=${v}"`],
     ["the main script tag", /(<script type="module" src="js\/[\w/.-]+\.js)"/g, `$1?v=${v}"`],
+    ["the stylesheets", /(<link rel="stylesheet" href="css\/[\w.-]+\.css)"/g, `$1?v=${v}"`],
     ["the inline script's preloads", /var v = "";/, `var v = "${v}";`]
   ];
   for (const [what, re, to] of steps) {
