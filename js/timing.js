@@ -1035,9 +1035,15 @@ const isDark = () => document.documentElement.dataset.mode === "dark";
 // a point of the flat outline (screen units) back to F1's coordinates, then to [lng, lat]
 const toGeo = (sx, sy) => { const { minX, minY, ox, oy, k, h, rot } = inv, [x, y] = rotate(minX + (sx - ox) / k, minY + (h - sy - oy) / k, -rot); return geoRef.toLngLat(x, y); };
 let geoRefP = null;
+// The map's panel is on screen: always on a wide screen; on a phone or tablet only under the Track tab. The real map (its
+// library, the circuit shapes, tiles and lettering: about 1 MB, and seconds of a phone's processor) is fetched and drawn
+// only once it is, so the Timing tab isn't held up by a map nobody is looking at. Until it's ready the panel shows the flat
+// outline, as it always has while the map loads.
+const mapShown = () => { const p = $("p-map"); return !!p && p.getClientRects().length > 0; };
 async function setupGeo() {   // can run several times at once: they share the work, and each finishes the job
   const box = $("gmap"); if (!box || !circuit) return;
   if (mapView === "classic" || !G.supported()) { $("mapwrap").classList.remove("geo"); return; }
+  if (!mapShown()) return;   // (opening the Track tab draws the circuit again, which comes back here: setSub)
   const screen = geoToken, key = circuitKey + "|" + year();   // geoToken changes when this screen closes
   try {
     if (geoKey !== key) { geoKey = key; geoRef = null; geoRefP = G.georef(circuit.x, circuit.y).catch(() => null); }
@@ -1473,7 +1479,8 @@ function setSub(k) {   // phone: which group of panels shows
   for (const b of tabs) b.setAttribute("aria-pressed", String(b.dataset.k === k));
   $("tgrid").dataset.show = k;
   store.set("f1.sub", k);
-  if (k === "track" && circuit) drawCircuit();   // the map's box depends on its width
+  if (mapView !== "classic" && mapShown()) G.preload();   // the map library and circuit shapes, while the session itself loads
+  if (k === "track" && circuit) drawCircuit();   // the map's box depends on its width (and the real map starts here on a phone)
   if (k === "track" && geo) requestAnimationFrame(() => geo && geo.resize());
   A.shown(k);
 }
@@ -1569,7 +1576,6 @@ export function mountTiming(el, { replay = null, app = null } = {}) {
   circuit = null; circuitKey = null; pitLane = null; trackLen = []; placeFor = ""; place = null; rainChance = null;
   geo = null; geoMaking = null; geoRef = null; geoRefP = null; geoKey = ""; inv = null; secCut = null; cornerLabels = [];
   mapView = store.get("f1.mapview", "3d"); canRide = false;
-  if (mapView !== "classic") G.preload();
   champKey = ""; posKey = ""; fKey = ""; penCache = { key: null, v: null }; secKey = ""; flagKey = ""; nextKey = "";
   for (const k in cars) delete cars[k]; for (const k in pitSince) delete pitSince[k];
   follow = store.get("f1.follow", null); posPick = follow; hiddenCols = new Set(store.get("f1.hide", []));
@@ -1587,6 +1593,9 @@ export function mountTiming(el, { replay = null, app = null } = {}) {
   if (!replay) timers.push(setInterval(updateRain, 15 * 60000));
   const mq = matchMedia("(max-width: 900px)"), refit = () => { if (circuit) { drawCircuit(); dirty = true; } };
   mq.addEventListener("change", refit); offs.push(() => mq.removeEventListener("change", refit));
+  // a tablet turned on its side, or a window made wider: the map's panel is now beside the timing, so its real map starts
+  const tabbed = matchMedia("(max-width: 1099px)"), unfold = () => { if (circuit && !geo) setupGeo(); };
+  tabbed.addEventListener("change", unfold); offs.push(() => tabbed.removeEventListener("change", unfold));
   const retheme = () => { champKey = ""; dirty = true; if (geo) geo.theme(isDark()); }; addEventListener("themechange", retheme); offs.push(() => removeEventListener("themechange", retheme));
   if (replay) startReplay(+replay); else connect();
   return stop;
