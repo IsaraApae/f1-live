@@ -2,7 +2,8 @@
 .view-news { max-width: 860px; }   /* a readable line length on a wide screen */
 .news-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
 .news-top .chips { padding: 2px; min-width: 0; }
-.news-chips button small { font-size: 11px; font-weight: 700; opacity: .65; margin-left: 2px; }
+.news-chips button small { font-size: 11px; font-weight: 700; margin-left: 2px; }
+.news-chips button[aria-pressed="true"] small { opacity: .65; }   /* (the picked chip only: on the others it left the count too faint to read) */
 .news-upd { color: var(--dim); font-weight: 700; font-size: 12px; white-space: nowrap; }
 
 .news-row { grid-template-columns: 36px minmax(0, 1fr) 16px; align-items: start; padding: 12px 16px; }
