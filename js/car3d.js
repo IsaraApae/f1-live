@@ -3,8 +3,8 @@
 // car is built here, in metres from its middle (x forward, y up, z to the side), roughly a 2026 car: 5.5 m long, 1.9 m wide.
 // The bodywork is lofted through cross-sections, the wings are real wing profiles, paint and carbon reflect a soft studio
 // light, and each car shows its number and the colour of the tyres it's on. Parts of one material are merged into one shape.
-const THREE = "https://cdn.jsdelivr.net/npm/three@0.186.1/+esm";
-const ROOM = "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/environments/RoomEnvironment.js/+esm";   // (imports the same three)
+const THREE = "https://cdn.jsdelivr.net/npm/three@0.187.0/+esm";
+const ROOM = "https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/environments/RoomEnvironment.js/+esm";   // (imports the same three)
 
 export async function carLayer(ml) {
   const [T, { RoomEnvironment }] = await Promise.all([import(THREE), import(ROOM)]);
