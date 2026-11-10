@@ -43,8 +43,12 @@ export const ink = hex => {   // black or white text on a colour
   const h = (hex || "#777").replace("#", ""), r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
   return (r * 299 + g * 587 + b * 114) / 1000 > 165 ? "#000" : "#fff";
 };
-export const tagVars = c => `--tc:${c};--tcf:${ink(c)}`;
-export const hex = c => c ? (String(c).startsWith("#") ? c : "#" + c) : "#777777";
+export const tagVars = c => `--tc:${esc(c)};--tcf:${ink(c)}`;
+// A team colour from a data source (OpenF1's team_colour, the live feed's TeamColour: "27F4D2") as "#27F4D2". Only hex digits
+// get through: colours are written into style="…" and SVG attributes all over the site, where anything else could close the
+// attribute and bring markup or script with it (tools/check.mjs tries it). Anything else, or none: grey. Where a colour is
+// written it's escaped as well, so one that didn't come through here still can't leave its attribute.
+export const hex = c => typeof c === "string" && /^#?(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(c) ? (c[0] === "#" ? c : "#" + c) : "#777777";
 
 // formula1.com's older pictures (flags, track drawings: /content/dam/…) at the width they're drawn, not their full size: its
 // image service resizes them (a 960×720 track drawing: 27 KB, 10 KB at 520 px; a flag: 14 KB, 2 KB at 144 px). Pick w for

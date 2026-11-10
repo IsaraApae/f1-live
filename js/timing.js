@@ -1,6 +1,6 @@
 // The timing screen, used by the Live tab and by replays: live from Formula 1's own feed (the browser connects straight to it),
 // or any past session rebuilt from OpenF1 in the live feed's shapes. Only one is on screen at a time.
-import { esc, store, sleep, photo as photoOf, teamLogo as logoOf, ink, tagVars, slug, TYRES, lapText, ICONS, countdownHtml, fmtWhen, SHORT } from "./util.js";
+import { esc, hex, store, sleep, photo as photoOf, teamLogo as logoOf, ink, tagVars, slug, TYRES, lapText, ICONS, countdownHtml, fmtWhen, SHORT } from "./util.js";
 import { liveTracker } from "./livepos.js";
 import { of1, jolpica, forecast, forecastFor } from "./api.js";
 import { currentSeason, season as seasonOf, allSessions } from "./season.js";
@@ -24,14 +24,14 @@ let dirty = true, APP = null;
 const $ = id => document.getElementById(id);
 const list = x => Array.isArray(x) ? x : x && typeof x === "object" ? Object.keys(x).sort((a, b) => a - b).map(k => x[k]) : [];
 const driver = n => ((S.DriverList || {})[n]) || {};
-const colour = d => "#" + (d.TeamColour || "777777");
+const colour = d => esc(hex(d.TeamColour));   // hex digits only, whatever the feed sends (util.js: hex); grey without one
 const year = () => +((S.SessionInfo && S.SessionInfo.StartDate || "").slice(0, 4)) || new Date().getFullYear();
 const utc = t => typeof t === "number" ? t : Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(t || "") ? t : t + "Z");   // F1 often leaves off the "Z" of UTC
 const timeOf = t => new Date(utc(t)).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: store.get("f1.clock", "24") === "12" });
 const hhmm = t => new Date(utc(t)).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });   // short, for the radio timeline
 function seconds(t) { if (t == null || t === "") return null; if (typeof t === "number") return t; const p = String(t).split(":").map(Number); return p.reduce((a, b) => a * 60 + b, 0); }
-const photo = (d, px) => photoOf(d, px, year());
-const teamLogo = (team, white) => logoOf(team, white, year());
+const photo = (d, px) => esc(photoOf(d, px, year()));   // (both go straight into src="…")
+const teamLogo = (team, white) => esc(logoOf(team, white, year()));
 const dtag = (n, small) => { const d = driver(n), c = colour(d); return `<span class="dtag${small ? " small" : ""}" style="${tagVars(c)}"><span class="n">${esc(d.RacingNumber || n)}</span><span class="t">${esc(d.Tla || n)}</span></span>`; };
 const segClass = s => ({ 2048: "y", 2049: "g", 2051: "p", 2064: "pit" })[s] || "";
 const timeClass = x => x && x.OverallFastest ? "t-purple" : x && x.PersonalFastest ? "t-green" : "";
@@ -846,7 +846,7 @@ function renderPositions() {
     const d = driver(n), c = colour(d), dash = seen[d.TeamName] ? ' stroke-dasharray="5 3"' : ""; seen[d.TeamName] = 1;
     const pts = p.map((v, k) => isFinite(v) && v > 0 ? `${x(k).toFixed(1)},${y(v).toFixed(1)}` : null).filter(Boolean);
     const lastK = p.reduce((a, v, k) => isFinite(v) && v > 0 ? k : a, 0), dim = posPick && posPick !== n;
-    return { n, z: posPick === n ? 1 : 0, svg: `<g class="who" data-n="${n}" opacity="${dim ? 0.15 : 1}"><polyline points="${pts.join(" ")}" fill="none" stroke="${c}" stroke-width="${posPick === n ? 3.2 : 2}"${dash} stroke-linejoin="round"/>
+    return { n, z: posPick === n ? 1 : 0, svg: `<g class="who" data-n="${esc(n)}" opacity="${dim ? 0.15 : 1}"><polyline points="${pts.join(" ")}" fill="none" stroke="${c}" stroke-width="${posPick === n ? 3.2 : 2}"${dash} stroke-linejoin="round"/>
       <polyline points="${pts.join(" ")}" fill="none" stroke="transparent" stroke-width="10"/>
       <circle cx="${x(lastK)}" cy="${y(p[lastK])}" r="3" fill="${c}"/><text x="${x(lastK) + 6}" y="${y(p[lastK]) + 3.5}" font-size="10" font-weight="800" fill="var(--text)">${esc(d.Tla || n)}</text></g>` };
   }).sort((a, b) => a.z - b.z).map(l => l.svg).join("");

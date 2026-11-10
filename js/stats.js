@@ -29,10 +29,10 @@ const initials = s => s.split(/\s+/).map(w => w[0] || "").join("").slice(0, 2).t
 
 // a photo on the team colour, or initials when there's no photo (past seasons)
 export const faceHtml = (d, px, cls = "face", lazy = true) => d.shape
-  ? `<img class="${cls}" style="--tc:${d.colour}" src="${esc(photo(d.shape, px, d.year))}" alt=""${lazy ? ` loading="lazy"` : ""}>`
+  ? `<img class="${cls}" style="--tc:${esc(d.colour)}" src="${esc(photo(d.shape, px, d.year))}" alt=""${lazy ? ` loading="lazy"` : ""}>`
   : `<span class="${cls} st-ini" style="${tagVars(d.colour)}">${esc(initials(`${d.first} ${d.last}`))}</span>`;
 export const logoHtml = (t, cls = "") => t.f1
-  ? `<span class="st-logo ${cls}" style="--tc:${t.colour}">${logoPair(t.f1, "tl", t.year)}</span>`
+  ? `<span class="st-logo ${cls}" style="--tc:${esc(t.colour)}">${logoPair(t.f1, "tl", t.year)}</span>`
   : `<span class="st-logo st-ini ${cls}" style="${tagVars(t.colour)}">${esc(initials(t.name))}</span>`;
 
 // Jolpica allows about 4 requests a second: a page's burst goes out 3 at a time
