@@ -1407,7 +1407,7 @@ function markup(replay) {
     <div class="count" id="nextCount"></div>
     <a class="btn" id="nextReplay" hidden></a>
   </section>
-  <div class="seg wide tsubs" id="tsubs" role="tablist">${groups.map(([k, l]) => `<button type="button" data-k="${k}">${l}</button>`).join("")}</div>
+  <div class="seg wide tsubs" id="tsubs" role="group" aria-label="Panels">${groups.map(([k, l]) => `<button type="button" data-k="${k}">${l}</button>`).join("")}</div>
   <div class="tgrid" id="tgrid">
     <div class="tcol">
       ${panel("p-tower", "timing", `<span>Timing <small id="part"></small> <small id="batN"></small> <small id="followHint">· tap a driver to follow</small></span><span class="hd-tools"><button class="btn small ghost" id="colsBtn" type="button">Columns</button></span>`,
