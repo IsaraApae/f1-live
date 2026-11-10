@@ -39,7 +39,7 @@
   // a LINE card opens a replay, a full result or the Live tab (?replay=KEY, ?result=KEY, ?live): fetch that page's modules now,
   // alongside main.js, instead of one layer of imports at a time after it has started (the same for those pages' own #/ links)
   (function () {
-    var v = "";   // this release (the publish writes it, tools/stamp.mjs), so these preloads are the addresses the page imports
+    var v = "";   // this release (the publish writes it, tools/stamp.mjs), so these preloads are the addresses the page asks for
     var q = new URLSearchParams(location.search), h = location.hash, timing = ["timing.js", "livepos.js", "analysis.js", "geomap.js"], files = [];
     if (/^#\/replay\/\d+$/.test(h) || (!h && q.get("replay"))) files = ["views/replay.js"].concat(timing);
     else if (/^#\/result\/\d+$/.test(h) || (!h && q.get("result"))) files = ["views/result.js", "views/weekend.js", "calendar-ui.js"];
@@ -50,7 +50,7 @@
     // their data-pages decide which page uses which)
     var page = h ? (/^#\/(\w+)/.exec(h) || [])[1] : q.get("replay") ? "replay" : q.get("result") ? "result" : q.has("live") ? "live" : "";
     var css = { live: "timing", replay: "timing", calendar: "calendar", result: "calendar", standings: "standings", driver: "standings", team: "standings", battle: "battle", news: "news" }[page];
-    if (css) { var l = document.createElement("link"); l.rel = "preload"; l.as = "style"; l.href = "css/" + css + ".css"; document.head.appendChild(l); }
+    if (css) { var l = document.createElement("link"); l.rel = "preload"; l.as = "style"; l.href = "css/" + css + ".css" + (v ? "?v=" + v : ""); document.head.appendChild(l); }
   })();
 </script>
 <link rel="stylesheet" href="css/app.css">

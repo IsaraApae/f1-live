@@ -96,6 +96,11 @@ try {
   if (missing.length) problems.push(`tools/stamp.mjs: the import map leaves out ${missing.join(", ")}`);
   if (out.indexOf('type="importmap"') > out.search(/modulepreload|type="module"/)) problems.push("tools/stamp.mjs: the import map comes after a module is asked for");
   for (const m of out.matchAll(/<(?:link rel="modulepreload" href|script type="module" src)="(js\/[^"]+)"/g)) if (!m[1].endsWith("?v=0123456789ab")) problems.push(`tools/stamp.mjs: ${m[1]} has no release address`);
+  // …and every stylesheet, with the inline script's preload of a page's stylesheet at the same address (else it's fetched twice)
+  const sheets = [...out.matchAll(/<link rel="stylesheet" href="([^"]+)"/g)].map(m => m[1]);
+  if (!sheets.length) problems.push("tools/stamp.mjs: found no stylesheets in index.html");
+  for (const s of sheets) if (!s.endsWith("?v=0123456789ab")) problems.push(`tools/stamp.mjs: ${s} has no release address`);
+  if (!/"css\/" \+ css \+ "\.css" \+ \(v \? "\?v=" \+ v : ""\)/.test(out)) problems.push("index.html: the inline script's stylesheet preload doesn't carry the release (v)");
   [...out.matchAll(/<script(?![^>]*\b(?:src|type)=)[^>]*>([\s\S]*?)<\/script>/g)].forEach((m, i) => { try { new vm.Script(m[1]); } catch (e) { problems.push(`stamped index.html inline script ${i + 1}: ${e.message}`); } });
 } catch (e) { problems.push(`tools/stamp.mjs: ${e.message}`); }
 
