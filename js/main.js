@@ -85,7 +85,10 @@ async function route() {
   if (mine !== token) return;
   app.setTitle(mod.title || "F1 Live");
   const tab = mod.tab || name;
-  for (const a of $$("[data-tab]")) a.classList.toggle("on", a.dataset.tab === tab);
+  for (const a of $$("[data-tab]")) {   // (aria-current: a screen reader says which section you're in)
+    const on = a.dataset.tab === tab;
+    a.classList.toggle("on", on); if (on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+  }
   try { current = { cleanup: await mod.mount(view, params, app) }; }
   catch (e) { console.error(e); if (mine === token) view.innerHTML = `<div class="card"><p class="note-line">Something went wrong loading this page. Try again in a minute.</p></div>`; }
   if (mine !== token && current && current.cleanup) { current.cleanup(); current = null; }

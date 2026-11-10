@@ -419,8 +419,9 @@ export async function createMap(el, { dark, onCar }) {
   for (const ev of ["dragstart", "zoomstart", "rotatestart", "pitchstart"]) map.on(ev, e => { if (e.originalEvent) moved = true; });
   const ro = new ResizeObserver(() => { map.resize(); if (!moved && !riding()) camera(false); });
   ro.observe(el);
-  // yellow sectors flash
-  const flash = setInterval(() => { if (map.getLayer("flags") && data.flags.features.some(f => f.properties.k === "yellow" || f.properties.k === "double")) map.setPaintProperty("flags", "line-opacity", (blink ^= 1) ? 0.95 : 0.15); }, 500);
+  // yellow sectors flash (lit without flashing on a device set to reduce motion)
+  const calm = matchMedia("(prefers-reduced-motion: reduce)");
+  const flash = setInterval(() => { if (map.getLayer("flags") && data.flags.features.some(f => f.properties.k === "yellow" || f.properties.k === "double")) map.setPaintProperty("flags", "line-opacity", (blink ^= 1) || calm.matches ? 0.95 : 0.15); }, 500);
 
   await ready;
   return {
