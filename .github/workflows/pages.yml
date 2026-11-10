@@ -1,11 +1,14 @@
 # Publishes the site to GitHub Pages: on every push to main, and every 30 minutes so the headlines stay fresh.
 # (Settings → Pages → Source must be "GitHub Actions".)
+# The schedule is at 13 and 43 past the hour, not on the hour and half hour: GitHub starts scheduled runs late, or not at
+# all, at the times most repositories ask for. At */30 it ran this one about every 5½ hours (60 runs in the 14 days to
+# 10 Nov 2026, the longest gap 10 hours), so the headlines were that old.
 name: pages
 on:
   push:
     branches: [main]
   schedule:
-    - cron: "*/30 * * * *"
+    - cron: "13,43 * * * *"
   workflow_dispatch:
 
 permissions:
