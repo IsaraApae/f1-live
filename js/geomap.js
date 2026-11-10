@@ -5,7 +5,7 @@
 // circuit shapes (github.com/bacinger/f1-circuits, MIT licence).
 import { esc, ink } from "./util.js";
 
-const LIB = "https://cdn.jsdelivr.net/npm/maplibre-gl@6.15.0/dist/";   // (from v6 an ES module only: cdnjs no longer has it)
+const LIB = "https://cdn.jsdelivr.net/npm/maplibre-gl@6.17.0/dist/";   // (from v6 an ES module only: cdnjs no longer has it)
 const SHAPES = "https://cdn.jsdelivr.net/gh/bacinger/f1-circuits@8094e957b8d6aa8b9f4510c93968556cccd30e02/f1-circuits.geojson";
 const STYLE = dark => `https://tiles.openfreemap.org/styles/${dark ? "dark" : "positron"}`;
 const SECTOR_COLOURS = ["#ff3b5c", "#3b9eff", "#ffd60a"];
