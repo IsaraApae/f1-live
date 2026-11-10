@@ -51,7 +51,7 @@ jobs:
           node tools/check.mjs
           wait $news || echo "::warning::headlines not updated (the last list stays)"; cat news.log
           wait $pit || echo "::warning::pit lanes not updated (the committed ones stay)"; cat pitlanes.log
-          rm -rf news.log pitlanes.log docs scripts   # README pictures and build tools: not part of the site (tools/ goes after the stamp)
+          rm -rf news.log pitlanes.log docs scripts README.md   # the README, its pictures and the build tools: not part of the site (tools/ goes after the stamp; the licence stays with the code)
       # the published scripts and styles minified (about a quarter less to download), each with a source map so the browser's
       # developer tools still show the readable code. The code in the repository stays as it is. If esbuild can't be fetched,
       # or a minified script doesn't parse, the readable files go out instead: never a reason not to publish.
