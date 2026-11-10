@@ -169,7 +169,7 @@ export default {
       if (on) foot = `<span class="cal-on">${ICONS.live}<b>${esc(live.name)}</b>${now < live.start ? "starts soon" : now > live.end ? "just finished" : "on now"}</span>`;
       else if (win) {
         const p = data.people.get(win.Driver.driverId), c = TEAM_COLOUR[win.Constructor.constructorId] || (p && p.colour) || "#777777";
-        foot = `<span class="cal-win" style="--tc:${c}">${p ? faceHtml(p, 64, "face cal-face") : ICONS.trophy}${dtagHtml(win.number, win.Driver.code, c, true)}<b>${esc(win.Driver.givenName)} ${esc(win.Driver.familyName)}</b><small>${esc(win.Constructor.name)}</small></span>`;
+        foot = `<span class="cal-win" style="--tc:${esc(c)}">${p ? faceHtml(p, 64, "face cal-face") : ICONS.trophy}${dtagHtml(win.number, win.Driver.code, c, true)}<b>${esc(win.Driver.givenName)} ${esc(win.Driver.familyName)}</b><small>${esc(win.Constructor.name)}</small></span>`;
       } else if (done) foot = `<span class="dim">Results to follow</span>`;
       else if (isNext && nx) foot = `<span class="cal-when"><b>${esc(nx.short)}</b>${fmtWhen(nx.start)}</span>`;
       else foot = `<span class="cal-when"><b>Race</b>${fmtWhen(race.start)}</span>`;

@@ -74,7 +74,7 @@ function renderFast() {   // each driver's best lap so far, quickest first
   const top = rows.length ? rows[0][1].dur : 0;
   $("fastLaps").innerHTML = rows.length ? rows.map(([n, l], i) => {
     const c = compoundOn(n, l.n), [ltr, ring] = TYRES[c] || ["", "#777"];
-    return `<li data-n="${esc(n)}" class="${following() === n ? "fol" : ""}" style="--tc:${info(n).colour}"><span class="p">${i + 1}</span>${tag(n)}
+    return `<li data-n="${esc(n)}" class="${following() === n ? "fol" : ""}" style="--tc:${esc(info(n).colour)}"><span class="p">${i + 1}</span>${tag(n)}
       <span class="lt ${i ? "" : "t-purple"}">${lapText(l.dur)}</span><span class="gp">${i ? "+" + (l.dur - top).toFixed(3) : ""}</span>
       <span class="ln">Lap ${l.n}</span>${c ? `<span class="tyre" style="--ty:${ring}" title="${esc(c)}">${ltr}</span>` : "<span></span>"}</li>`;
   }).join("") : `<li class="empty">No timed laps yet</li>`;
