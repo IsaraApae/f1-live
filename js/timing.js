@@ -37,11 +37,17 @@ const segClass = s => ({ 2048: "y", 2049: "g", 2051: "p", 2064: "pit" })[s] || "
 const timeClass = x => x && x.OverallFastest ? "t-purple" : x && x.PersonalFastest ? "t-green" : "";
 const show = (id, on) => { const el = $(id); if (el) el.hidden = !on; };
 
+// Names no change may be filed under: target["__proto__"] is the object every other object inherits from, so a change sent
+// under that name would land on all of them (tools/check.mjs tries it).
+const unsafeKey = k => k === "__proto__" || k === "constructor" || k === "prototype";
 function merge(target, delta) {        // F1 sends changes only; lists change by index ({"3": {...}})
   if (delta === null || typeof delta !== "object") return delta;
   if (Array.isArray(delta)) return delta;
   if (target === null || typeof target !== "object") target = {};
-  for (const [k, v] of Object.entries(delta)) { if (k !== "_kf") target[k] = merge(target[k], v); }
+  for (const [k, v] of Object.entries(delta)) {
+    if (k === "_kf" || k === "__proto__" || k === "constructor" || k === "prototype") continue;
+    target[k] = merge(target[k], v);
+  }
   return target;
 }
 
@@ -49,6 +55,7 @@ function merge(target, delta) {        // F1 sends changes only; lists change by
 const lapLog = [], pitLog = {};
 const QUALI_BREAK = 7 * 60000;   // F1's break between Q1, Q2 and Q3
 function apply(topic, data, ts) {
+  if (unsafeKey(topic)) return;   // (the same for a topic's name)
   S[topic] = merge(S[topic], data);
   if (topic === "LapCount" && S.LapCount && S.LapCount.CurrentLap && (!lapLog.length || lapLog[lapLog.length - 1].lap !== S.LapCount.CurrentLap))
     lapLog.push({ lap: S.LapCount.CurrentLap, at: ts });   // when the lap counter changed while the page was open
