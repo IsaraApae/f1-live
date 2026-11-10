@@ -63,6 +63,8 @@ OpenF1 allows 30 requests a minute; `js/api.js` queues requests and waits when i
 
 Live car positions on the map are worked out from Formula 1's mini-sector marks (exact positions are only on F1 TV): `js/livepos.js` runs each car through every mini-sector at its own pace from its last lap, and the drawn car speeds up or slows down a little to stay with the marks, so it never jumps or goes backwards (checked by `tools/check.mjs`).
 
+Nothing these sources send is written onto the page as it comes: names and messages are escaped, a team colour is hex digits or it's shown grey, and a change in the live feed can't be filed under a name that would reach every object on the page (`tools/check.mjs` tries both).
+
 ## Run it on your computer
 
 ```bash
