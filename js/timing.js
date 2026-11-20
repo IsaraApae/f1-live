@@ -186,6 +186,8 @@ function prepare(sess, meet, g) {
   const start = form ? form.from - 30000 : isFinite(firstLap) ? firstLap - 60000 : sched;
   return {
     sess, meet, byDriver, start, form, end: Math.max(lastEnd + 60000, start + 60000),
+    // no real lap time from anyone (OpenF1 recorded almost nothing of Las Vegas 2026 FP1, one 31-minute "lap"): the tower says so
+    noTimes: !g.laps.some(l => l.lap_duration > 0 && l.lap_duration < 600),
     totalLaps: Math.max(0, ...g.laps.map(l => l.lap_number || 0)),
     drivers: g.drivers, positions: g.position.map(p => ({ at: t(p.date), n: String(p.driver_number), p: p.position })).sort((a, b) => a.at - b.at),
     stints: g.stints, // OpenF1's pit time is near the END of the pit lane: checked against car positions (Singapore 2026), cars leave the track
@@ -576,7 +578,8 @@ function renderTower() {
     const v = String((l.IntervalToPositionAhead || {}).Value || ""), [m, a] = rows[i - 1];
     if (/^\+?\d+\.\d+$/.test(v) && parseFloat(v.replace("+", "")) < 1 && !l.InPit && !a.InPit && !l.Retired && !a.Retired && !l.Stopped && !a.Stopped) { battleSet.add(n); battleSet.add(m); battlePairs.push([m, n]); }
   });
-  $("batN").textContent = battlePairs.length ? `· ${battlePairs.length} battle${battlePairs.length > 1 ? "s" : ""} within 1s` : "";
+  $("batN").textContent = mode === "replay" && R.data && R.data.noTimes ? "· no lap times: F1's timing data didn't record them"
+    : battlePairs.length ? `· ${battlePairs.length} battle${battlePairs.length > 1 ? "s" : ""} within 1s` : "";
   $("followHint").hidden = !!follow;
   for (const [num, l] of rows) {
     const d = driver(num), c = colour(d), stats = list(l.Stats)[part ? part - 1 : 0] || {};

@@ -206,7 +206,9 @@ export default {
       const g = got[x.key];
       if (!g || g.busy) return skeleton(5);
       if (g.err) return `<p class="note-line">Couldn't load the results. <button class="btn small" type="button" data-retry="${x.key}">Try again</button></p>`;
-      if (!g.res.length) return `<p class="note-line">No results for this session yet.</p>`;
+      // still nothing 2 hours after the end: the timing feed never recorded it (OpenF1 had no Las Vegas 2026 FP1), not "yet"
+      if (!g.res.length) return `<p class="note-line">${Date.now() - x.end > 2 * 3600000 ? "No times for this session: F1's timing data didn't record it."
+        : "No results for this session yet."}</p>`;
       const rows = [...g.res].sort(byPos), every = all.has(x.key);
       const grid = new Map((g.grid || []).map(e => [e.driver_number, e.position]));
       const starts = e => grid.has(e.driver_number) && grid.get(e.driver_number) !== e.position ? grid.get(e.driver_number) : null;
