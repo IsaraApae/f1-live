@@ -40,7 +40,7 @@
   // alongside main.js, instead of one layer of imports at a time after it has started (the same for those pages' own #/ links)
   (function () {
     var v = "";   // this release (the publish writes it, tools/stamp.mjs), so these preloads are the addresses the page asks for
-    var q = new URLSearchParams(location.search), h = location.hash, timing = ["timing.js", "livepos.js", "tv-sync.js", "analysis.js", "geomap.js"], files = [];
+    var q = new URLSearchParams(location.search), h = location.hash, timing = ["timing.js", "livepos.js", "tv-sync.js", "lap-timing.js", "lap-comparison.js", "analysis.js", "geomap.js"], files = [];
     if (/^#\/replay\/\d+$/.test(h) || (!h && q.get("replay"))) files = ["views/replay.js"].concat(timing);
     else if (/^#\/result\/\d+$/.test(h) || (!h && q.get("result"))) files = ["views/result.js", "views/weekend.js", "calendar-ui.js"];
     else if (/^#\/live$/.test(h) || (!h && q.has("live"))) files = ["views/live.js"].concat(timing);

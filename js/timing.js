@@ -1,8 +1,10 @@
 // The timing screen, used by the Live tab and by replays: live from Formula 1's own feed (the browser connects straight to it),
 // or any past session rebuilt from OpenF1 in the live feed's shapes. Only one is on screen at a time.
-import { esc, hex, store, sleep, photo as photoOf, teamLogo as logoOf, ink, tagVars, slug, TYRES, lapText, ICONS, countdownHtml, fmtWhen, SHORT } from "./util.js";
+import { esc, hex, store, sleep, photo as photoOf, teamLogo as logoOf, ink, tagVars, slug, TYRES, tyreIcon as compoundIcon, lapText, ICONS, countdownHtml, fmtWhen, SHORT } from "./util.js";
 import { liveTracker } from "./livepos.js";
 import { createTvSync, MAX_DELAY } from "./tv-sync.js";
+import { liveLapHistory } from "./lap-timing.js";
+import { lapComparisonMarkup, mountLapComparison } from "./lap-comparison.js";
 import { of1, jolpica, forecast, forecastFor } from "./api.js";
 import { currentSeason, season as seasonOf, allSessions } from "./season.js";
 import * as A from "./analysis.js";
@@ -55,6 +57,8 @@ function merge(target, delta) {        // F1 sends changes only; lists change by
 
 // ---------- live: F1's feed, straight into the browser ----------
 const lapLog = [], pitLog = {};
+const liveLaps = liveLapHistory();
+const sessionId = info => info?.Key ?? info?.Path ?? info?.StartDate ?? null;
 const QUALI_BREAK = 7 * 60000;   // F1's break between Q1, Q2 and Q3
 function apply(topic, data, ts) {
   if (unsafeKey(topic)) return;   // (the same for a topic's name)
@@ -65,7 +69,10 @@ function apply(topic, data, ts) {
   if (topic === "TeamRadio") radioArrived();
   if (topic === "PitLaneTimeCollection")   // live: F1 keeps only each car's latest stop, so remember them all
     for (const [n, x] of Object.entries((data || {}).PitTimes || {})) if (x && x.Duration && x.Lap) pitLog[n + "|" + x.Lap] = { n: x.RacingNumber || n, lap: +x.Lap, dur: +x.Duration };
-  if (topic === "SessionInfo") { loadCircuit(); loadPlace(); }
+  if (topic === "SessionInfo") {
+    if (mode === "live") liveLaps.setSession(sessionId(S.SessionInfo));
+    loadCircuit(); loadPlace();
+  }
   dirty = true;
 }
 function segmentsPassed(line) {
@@ -91,9 +98,11 @@ function deliverLive(message, receivedAt) {
     }
     S = {}; radioSeen = null; rcSeen = null;
     for (const [topic, data] of Object.entries(message.snapshot)) apply(topic, data, receivedAt);
+    liveLaps.snapshot(sessionId(S.SessionInfo), S.TimingData?.Lines);
     gotState = true;
   } else {
     apply(message.topic, message.data, message.at);
+    if (message.topic === "TimingData") liveLaps.record(message.data?.Lines, message.at);
   }
 }
 
@@ -196,7 +205,7 @@ function prepare(sess, meet, g) {
   const byDriver = {};
   for (const l of g.laps) {
     const st = t(l.date_start); if (!st) continue;
-    (byDriver[l.driver_number] = byDriver[l.driver_number] || []).push({ n: l.lap_number, start: st, dur: l.lap_duration,
+    (byDriver[l.driver_number] = byDriver[l.driver_number] || []).push({ n: l.lap_number, start: st, dur: l.lap_duration, recordedDuration: l.lap_duration,
       sec: [l.duration_sector_1, l.duration_sector_2, l.duration_sector_3], segs: [l.segments_sector_1 || [], l.segments_sector_2 || [], l.segments_sector_3 || []],
       st: l.st_speed, out: l.is_pit_out_lap });
   }
@@ -623,6 +632,8 @@ function renderTower() {
     const tags = (l.InPit ? `<span class="tag pit">PIT</span>` : l.PitOut ? `<span class="tag outlap">OUT</span>` : "")
                + (l.Retired ? `<span class="tag ko">OUT</span>` : l.KnockedOut ? `<span class="tag ko">KO</span>` : "");
     const a = app[num] || {}, stints = list(a.Stints);
+    const compound = stints.at(-1)?.Compound;
+    const tyre = Object.hasOwn(TYRES, compound) ? compoundIcon(compound) : "";
     const stintHtml = stints.map((st, i) => {
       const [ltr, ring] = TYRES[st.Compound] || ["?", "#777"];
       return `<span class="stint${i === stints.length - 1 ? " now" : ""}" title="${esc(st.Compound || "")}, ${esc(st.TotalLaps)} laps"><span style="border-color:${ring};color:${ring}">${ltr}</span>${esc(st.TotalLaps != null ? st.TotalLaps : "")}</span>`;
@@ -635,7 +646,7 @@ function renderTower() {
     const pos = l.ShowPosition === false || out ? "" : l.Position, owed = penaltyOwed(num);
     const lastV = (l.LastLapTime || {}).Value || "", lastC = timeClass(l.LastLapTime);
     const cells = [
-      ["", "", `<span class="posn">${esc(pos || "–")}</span>${dtag(num)}<span class="tags">${tags}${owed ? `<span class="pen" title="Penalty not yet served">${esc(owed)}</span>` : ""}</span>`],
+      ["", "", `<span class="posn">${esc(pos || "–")}</span>${dtag(num)}${tyre}<span class="tags">${tags}${owed ? `<span class="pen" title="Penalty not yet served">${esc(owed)}</span>` : ""}</span>`],
       ["int", "", race && battleSet.has(num) && battlePairs.some(p => p[1] === num) ? `<span class="pill bat">${esc(intv)}</span>`
                 : race && catching && intv && intv !== "—" ? `<span class="pill ring">${esc(intv)}</span>` : esc(race ? intv : gap) || "–"],
       ["gap", "", esc(race ? gap : intv) || ""],
@@ -1465,7 +1476,7 @@ function setTvDelay(seconds) {
   frame();
 }
 // on a phone the panels are grouped under sub-tabs; on a wide screen they all show in two columns
-const GROUPS = [["timing", "Timing"], ["track", "Track"], ["rc", "Race control"], ["radio", "Radio"], ["more", "More"]];
+const GROUPS = [["timing", "Timing"], ["laps", "Laps"], ["track", "Track"], ["rc", "Race control"], ["radio", "Radio"], ["more", "More"]];
 const TAB_REPLAY = ["analysis", "Analysis"];
 const panel = (id, groups, head, body, extra = "") => `<section class="card panel" id="${id}" data-g="${groups}" ${extra}><h2 class="card-h">${head}</h2>${body}</section>`;
 function markup(replay) {
@@ -1493,8 +1504,9 @@ function markup(replay) {
   <div class="seg wide tsubs" id="tsubs" role="group" aria-label="Panels">${groups.map(([k, l]) => `<button type="button" data-k="${k}">${l}</button>`).join("")}</div>
   <div class="tgrid" id="tgrid">
     <div class="tcol">
-      ${panel("p-tower", "timing", `<span>Timing <small id="part"></small> <small id="batN"></small> <small id="followHint">· tap a driver to follow</small></span><span class="hd-tools"><button class="btn small ghost" id="colsBtn" type="button">Columns</button></span>`,
+      ${panel("p-tower", "timing", `<span>Timing <small id="part"></small> <small id="batN"></small> <small id="followHint">· tap a driver to follow</small></span><span class="hd-tools"><button class="btn small ghost lap-jump" id="lapJump" type="button">Lap times</button><button class="btn small ghost" id="colsBtn" type="button">Columns</button></span>`,
         `<div class="scroll"><table id="tower"></table></div>`)}
+      ${panel("p-laps", "laps", "Lap times", lapComparisonMarkup(replay))}
       ${panel("p-pos", "more", `<span>Race positions</span><small>tap a driver to highlight</small>`, `<div class="chart" id="posChart"></div>`, "hidden")}
       ${panel("p-strat", "more", `<span>Tyre strategy</span><span class="legend2"><span><i style="background:#e10600"></i>Soft</span><span><i style="background:#eab308"></i>Medium</span><span><i style="background:#d1d5db"></i>Hard</span><span><i style="background:#16a34a"></i>Inter</span><span><i style="background:#2563eb"></i>Wet</span></span>`,
         `<div class="strat" id="strat"></div>`)}
@@ -1565,7 +1577,27 @@ function setSub(k) {   // phone: which group of panels shows
   if (mapView !== "classic" && mapShown()) G.preload();   // the map library and circuit shapes, while the session itself loads
   if (k === "track" && circuit) drawCircuit();   // the map's box depends on its width (and the real map starts here on a phone)
   if (k === "track" && geo) requestAnimationFrame(() => geo && geo.resize());
+  if (k === "laps") renderLaps();
   A.shown(k);
+}
+let lapComparison = null;
+function renderLaps() {
+  const panel = $("p-laps");
+  if (!lapComparison || !panel?.getClientRects().length) return;
+  const lines = S.TimingData?.Lines || {};
+  const order = Object.keys(lines).sort((a, b) => (+lines[a].Line || 99) - (+lines[b].Line || 99));
+  const drivers = new Map([...new Set(order.concat(Object.keys(S.DriverList || {})))].map(n => {
+    const d = driver(n), code = d.Tla || n;
+    return [n, { code, name: [code, d.LastName].filter(Boolean).join(" · ") }];
+  }));
+  lapComparison({
+    drivers, preferred: follow,
+    getLaps(n, all) {
+      if (mode === "live") return liveLaps.laps(n);
+      return (R.data?.byDriver[n] || []).filter(lap => Number.isInteger(+lap.n) && +lap.n > 0 && (lap.dur > 0 || lap.sec[2] > 0) && (all || lap.end <= R.t))
+        .map(lap => ({ number: +lap.n, time: +lap.recordedDuration, sectors: lap.sec.map(Number) }));
+    }
+  });
 }
 function wire(root) {
   const on = (id, ev, fn) => { const el = $(id); if (el) el.addEventListener(ev, fn); };
@@ -1611,6 +1643,10 @@ function wire(root) {
     dirty = true;
   });
   on("tsubs", "click", e => { const b = e.target.closest("button"); if (b) setSub(b.dataset.k); });
+  on("lapJump", "click", () => {
+    $("p-laps").scrollIntoView({ block: "start" });
+    $("p-laps").querySelector("select").focus({ preventScroll: true });
+  });
   on("colsBtn", "click", () => { fillColumns(); $("colSheet").hidden = false; });
   on("colSheet", "click", e => { if (e.target === $("colSheet") || e.target.closest("[data-close]")) $("colSheet").hidden = true; });
   on("colAll", "click", () => { hiddenCols.clear(); store.set("f1.hide", []); applyColumns(); fillColumns(); });
@@ -1652,7 +1688,7 @@ function frame() {
   renderNext();
   if (dirty) {
     dirty = false;
-    renderHeader(); renderTower(); renderBests(); renderRaceControl(); renderPenalties(); renderPositions(); renderStrategy(); renderPits(); renderFollow();
+    renderHeader(); renderTower(); renderLaps(); renderBests(); renderRaceControl(); renderPenalties(); renderPositions(); renderStrategy(); renderPits(); renderFollow();
     notifyRaceControl(); renderRadio(); renderChampionship(); renderSectors(); renderFlags();
     if (mode === "replay") A.render();
   }
@@ -1691,6 +1727,7 @@ export function mountTiming(el, { replay = null, app = null } = {}) {
   applyColumns();
   pressView();
   mode = replay ? "replay" : "live";
+  lapComparison = mountLapComparison($("p-laps"));
   tvSync = replay ? null : createTvSync(store.get("f1.tvDelay", 0));
   latestLap = lapCrossedAt = null;
   lastFrame = lastLiveFrame = 0;
@@ -1713,6 +1750,7 @@ export function mountTiming(el, { replay = null, app = null } = {}) {
 function stop() {
   if (mode === "off" && !timers.length) return;
   mode = "off"; replayToken++;
+  lapComparison = null;
   tvSync = null;
   while (timers.length) clearInterval(timers.pop());
   while (offs.length) offs.pop()();

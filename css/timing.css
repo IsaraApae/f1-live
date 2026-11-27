@@ -54,9 +54,11 @@
   .tcol { display: contents; }
   .seg.tsubs { display: flex; position: sticky; top: 62px; z-index: 20; box-shadow: 0 6px 14px -8px var(--shadow); }
   .tgrid[data-show="timing"] .panel:not([data-g~="timing"]), .tgrid[data-show="track"] .panel:not([data-g~="track"]),
+  .tgrid[data-show="laps"] .panel:not([data-g~="laps"]),
   .tgrid[data-show="rc"] .panel:not([data-g~="rc"]), .tgrid[data-show="radio"] .panel:not([data-g~="radio"]),
   .tgrid[data-show="more"] .panel:not([data-g~="more"]), .tgrid[data-show="analysis"] .panel:not([data-g~="analysis"]) { display: none; }
   .tgrid[data-show="track"] #p-follow { order: 2; }
+  .lap-jump.btn { display: none; }
   #map { max-height: none !important; }
 }
 @media (max-width: 899px) { .seg.tsubs { top: calc(58px + env(safe-area-inset-top)); } }
@@ -77,6 +79,7 @@
 tr.out td { color: var(--dim); } tr.out td > * { opacity: .45; }
 tr.cut > td { border-bottom: 2px solid var(--red) !important; }   /* qualifying: the drop zone starts below this row */
 #tower tr[data-n] { cursor: pointer; }
+#tower .tyre { width: 16px; height: 16px; margin-inline: 5px 2px; vertical-align: middle; border-width: 1.5px; color: var(--text); }
 tr.fol td, tr.fol td:first-child { background: color-mix(in srgb, var(--tc) 20%, var(--panel)) !important; }
 tr.bat td:first-child { background-image: linear-gradient(var(--amber), var(--amber)); background-size: 3px 100%; background-repeat: no-repeat; }   /* within 1 s of each other */
 .pill { display: inline-block; padding: 2px 7px; border-radius: 6px; font-weight: 800; }
@@ -95,6 +98,23 @@ tr.bat td:first-child { background-image: linear-gradient(var(--amber), var(--am
 .stint.now { opacity: 1; color: var(--text); font-weight: 800; }
 small.u { color: var(--dim); font-size: 10px; }
 .empty { color: var(--dim); padding: 16px 14px; list-style: none; }
+
+/* individual lap times and head-to-head comparison */
+#p-laps { scroll-margin-top: 76px; }
+.lap-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 12px 14px; }
+.lap-pick { display: grid; min-width: 0; gap: 4px; font-size: 12px; font-weight: 700; color: var(--dim); }
+.lap-controls .pick { min-width: 0; min-height: 44px; color: var(--text); text-overflow: ellipsis; }
+.lap-controls .pick:disabled { opacity: .6; }
+.lap-all { grid-column: 1 / -1; justify-self: start; }
+.lap-difference { border-block: 1px solid var(--line); overflow-x: auto; }
+.lap-difference th small { display: inline-block; font-size: inherit; font-weight: 400; }
+.lap-difference tbody th, .lap-history tbody th { border-top: 1px solid var(--line); }
+.lap-history { max-height: min(420px, 60vh); }
+.lap-history caption { text-align: left; padding: 10px 14px; font-weight: 800; }
+.lap-history thead { position: sticky; top: 0; z-index: 3; }
+.lap-history tbody .lap-selected :is(th, td) { background: var(--chip); color: var(--text); }
+.lap-note { margin: 0; padding: 9px 14px; color: var(--dim); font-size: 12px; }
+[data-theme="cyberpunk"] .lap-history td, [data-theme="cyberpunk"] .lap-difference td { font-family: var(--telemetry-font); }
 
 /* track map */
 .mapwrap { position: relative; background: var(--map); perspective: 1000px; overflow: hidden; }

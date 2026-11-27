@@ -94,6 +94,34 @@ if (shell) { const cached = new Set([...shell[1].matchAll(/"([^"]+)"/g)].map(m =
   if (sync.delay !== MAX_DELAY) problems.push("TV sync: the maximum delay was not enforced");
 }
 
+// F1 publishes lap completions and their final split separately. A lapped car has its own counter.
+{
+  const { liveLapHistory } = await import(new URL("../js/lap-timing.js", import.meta.url));
+  const history = liveLapHistory(), check = (actual, expected, message) => {
+    if (JSON.stringify(actual) !== JSON.stringify(expected)) problems.push(`Lap history: ${message}`);
+  };
+  history.snapshot(1, {
+    4: { NumberOfLaps: 12, LastLapTime: { Value: "1:35.600" }, Sectors: { 0: { Value: "30.100" } } },
+    81: { NumberOfLaps: 11 }
+  });
+  check(history.laps("4"), [{ number: 12, time: 95.6, sectors: [null, null, null] }], "the snapshot's open-lap sectors leaked into the last lap");
+  history.record({ 4: { Sectors: { 0: { Value: "30.200" } } }, 81: { Sectors: { 0: { Value: "31.100" } } } }, 30000);
+  history.record({ 4: { Sectors: { 1: { Value: "29.900" } } } }, 60000);
+  history.record({ 4: { NumberOfLaps: 13 }, 81: { NumberOfLaps: 12 } }, 95000);
+  history.record({ 4: { LastLapTime: { Value: "1:35.100" }, Sectors: { 2: { Value: "35.000" } } } }, 97000);
+  check(history.laps("4").at(-1), { number: 13, time: 95.1, sectors: [30.2, 29.9, 35] }, "a late finish-line time or sector went to the wrong lap");
+  check(history.laps("81"), [{ number: 12, time: null, sectors: [31.1, null, null] }], "the lapped car inherited another driver's lap");
+  history.record({ 4: { NumberOfLaps: 12, LastLapTime: { Value: "0:15.901" } } }, 98000);
+  history.record({ 4: { Sectors: { 0: { Value: "29.000" } } } }, 125000);
+  history.snapshot(1, { 4: { NumberOfLaps: 14, LastLapTime: { Value: "1:33.900" }, Sectors: { 1: { Value: "28.1" } } } });
+  check(history.laps("4").slice(-2), [
+    { number: 13, time: 95.1, sectors: [30.2, 29.9, 35] },
+    { number: 14, time: 93.9, sectors: [29, null, null] }
+  ], "reconnecting lost an observed sector or copied unconfirmed sectors");
+  history.snapshot(2, { 4: { NumberOfLaps: 0 } });
+  check(history.laps("4"), [], "a new session inherited lap history");
+}
+
 // 5b. a yellow race control never cleared by name (Brazil 2026, sector 15) ends at the chequered flag
 // (timing.js needs a browser to load: its flagState is one self-contained function, so it's tried on its own)
 {
