@@ -28,6 +28,10 @@ let dirty = true, APP = null;
 const $ = id => document.getElementById(id);
 const list = x => Array.isArray(x) ? x : x && typeof x === "object" ? Object.keys(x).sort((a, b) => a - b).map(k => x[k]) : [];
 const driver = n => ((S.DriverList || {})[n]) || {};
+const driverChoice = n => {
+  const d = driver(n), code = d.Tla || n;
+  return { code, name: [code, d.LastName].filter(Boolean).join(" · ") };
+};
 const colour = d => esc(hex(d.TeamColour));   // hex digits only, whatever the feed sends (util.js: hex); grey without one
 const year = () => +((S.SessionInfo && S.SessionInfo.StartDate || "").slice(0, 4)) || new Date().getFullYear();
 const utc = t => typeof t === "number" ? t : Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(t || "") ? t : t + "Z");   // F1 often leaves off the "Z" of UTC
@@ -671,16 +675,45 @@ function renderTower() {
   for (const [num, tr] of Object.entries(towerRows)) if (!lines[num]) { tr.remove(); delete towerRows[num]; }
 }
 
-// ---------- fastest sectors ----------
+// ---------- track sector times ----------
+let sectorDriver = "";
+function driverSectorLap(n) {
+  if (mode === "live") return liveLaps.sectorLap(n);
+  const line = S.TimingData?.Lines?.[n];
+  if (!line) return null;
+  const splits = list(line.Sectors).map(sector => seconds(sector?.Value));
+  if (line._lap && splits.some(Boolean)) return { number: line._lap.n, sectors: splits, inProgress: true };
+  const last = line._laps?.filter(lap => lap.end <= R.t).at(-1);
+  return last ? { number: last.n, sectors: last.sec } : null;
+}
+
 function renderBests() {
-  const lines = (S.TimingStats || {}).Lines || {}, out = [];
-  for (let i = 0; i < 3; i++) {
+  const lines = S.TimingStats?.Lines || {}, picker = $("sectorDriver"), grid = $("bests");
+  const drivers = [...new Set(Object.keys(S.DriverList || {}).concat(Object.keys(S.TimingData?.Lines || {}), Object.keys(lines)))]
+    .map(n => [n, driverChoice(n).name]).sort((a, b) => a[1].localeCompare(b[1]));
+  const options = '<option value="">All drivers</option>' + drivers.map(([n, label]) => `<option value="${esc(n)}">${esc(label)}</option>`).join("");
+  if (picker._html !== options) { picker.innerHTML = options; picker._html = options; }
+  const selected = drivers.some(([n]) => n === sectorDriver) ? sectorDriver : "";
+  if (picker.value !== selected) picker.value = selected;
+  picker.disabled = !drivers.length;
+  const heading = selected ? "Driver sectors" : "Fastest sectors", title = $("sectorHeading");
+  if (title.textContent !== heading) title.textContent = heading;
+  grid.classList.toggle("driver-sectors", !!selected);
+
+  const lap = selected ? driverSectorLap(selected) : null;
+  const context = lap ? `Lap ${lap.number} · ${lap.inProgress ? "In progress" : "Completed"}` : "Waiting for lap splits";
+  if (selected && $("sectorLap").textContent !== context) $("sectorLap").textContent = context;
+  show("sectorLap", !!selected);
+  const best = list(lines[selected]?.BestSectors);
+  const splitText = value => { const v = seconds(value); return Number.isFinite(v) && v > 0 ? lapText(v) : "–"; };
+  const html = [0, 1, 2].map(i => {
+    if (selected) return `<div><h3>Sector ${i + 1}</h3><p class="driver-sector-time">${splitText(lap?.sectors[i])}</p>
+      <p class="driver-sector-best"><span>Best</span><b>${splitText(best[i]?.Value)}</b></p></div>`;
     const top = Object.entries(lines).map(([n, l]) => [n, list(l.BestSectors)[i] || {}]).filter(([, b]) => b.Value && b.Position)
                       .sort((a, b) => a[1].Position - b[1].Position).slice(0, 3);
-    out.push(`<div><h3>Sector ${i + 1}</h3>${top.map(([n, b]) => `<p>${dtag(n, true)}<span>${esc(b.Value)}</span></p>`).join("") || `<p class="when">–</p>`}</div>`);
-  }
-  const html = out.join("");
-  if ($("bests")._html !== html) { $("bests").innerHTML = html; $("bests")._html = html; }
+    return `<div><h3>Sector ${i + 1}</h3>${top.map(([n, b]) => `<p>${dtag(n, true)}<span>${esc(b.Value)}</span></p>`).join("") || `<p class="when">–</p>`}</div>`;
+  }).join("");
+  if (grid._html !== html) { grid.innerHTML = html; grid._html = html; }
 }
 
 // ---------- live championship ----------
@@ -1523,7 +1556,9 @@ function markup(replay) {
         `<div class="mapwrap" id="mapwrap"><svg id="map" viewBox="0 0 400 300" role="img" aria-label="Circuit map with each car's position"></svg>
           <div class="gmap" id="gmap" role="img" aria-label="The circuit on a map of its surroundings, with each car's position"></div>
           <div class="legend" id="mapLegend" hidden><span><i style="background:#facc15"></i>Yellow flag (flashing)</span></div></div>`)}
-      ${panel("p-bests", "track", `Fastest sectors`, `<div class="bests" id="bests"></div>`)}
+      ${panel("p-bests", "track", `<span id="sectorHeading">Fastest sectors</span>
+        <select id="sectorDriver" class="pick" aria-label="Driver for sector times" disabled><option value="">All drivers</option></select>`,
+        `<p class="sector-lap" id="sectorLap" hidden></p><div class="bests" id="bests"></div>`)}
       ${panel("p-champ", "more", `<span>Live championship</span><span class="seg" id="champTabs"><button type="button" data-k="d" aria-pressed="true">Drivers</button><button type="button" data-k="t" aria-pressed="false">Teams</button></span>`,
         `<ol class="champ" id="champ"></ol>`)}
       ${panel("p-pits", "more", `<span>Pit stops</span><small id="pitBest"></small>`, `<ol class="pits" id="pits"></ol>`, "hidden")}
@@ -1586,10 +1621,7 @@ function renderLaps() {
   if (!lapComparison || !panel?.getClientRects().length) return;
   const lines = S.TimingData?.Lines || {};
   const order = Object.keys(lines).sort((a, b) => (+lines[a].Line || 99) - (+lines[b].Line || 99));
-  const drivers = new Map([...new Set(order.concat(Object.keys(S.DriverList || {})))].map(n => {
-    const d = driver(n), code = d.Tla || n;
-    return [n, { code, name: [code, d.LastName].filter(Boolean).join(" · ") }];
-  }));
+  const drivers = new Map([...new Set(order.concat(Object.keys(S.DriverList || {})))].map(n => [n, driverChoice(n)]));
   lapComparison({
     drivers, preferred: follow,
     getLaps(n, all) {
@@ -1643,6 +1675,11 @@ function wire(root) {
     dirty = true;
   });
   on("tsubs", "click", e => { const b = e.target.closest("button"); if (b) setSub(b.dataset.k); });
+  on("sectorDriver", "change", e => {
+    sectorDriver = e.target.value;
+    store.set("f1.sectorDriver", sectorDriver);
+    renderBests();
+  });
   on("lapJump", "click", () => {
     $("p-laps").scrollIntoView({ block: "start" });
     $("p-laps").querySelector("select").focus({ preventScroll: true });
@@ -1719,6 +1756,7 @@ export function mountTiming(el, { replay = null, app = null } = {}) {
   champKey = ""; posKey = ""; fKey = ""; penCache = { key: null, v: null }; secKey = ""; flagKey = ""; nextKey = "";
   for (const k in cars) delete cars[k]; for (const k in pitSince) delete pitSince[k];
   follow = store.get("f1.follow", null); posPick = follow; hiddenCols = new Set(store.get("f1.hide", []));
+  sectorDriver = store.get("f1.sectorDriver", "");
   el.insertAdjacentHTML("beforeend", markup(!!replay));
   el.classList.add("timing");
   gotState = schedDone = false; settleBy = Date.now() + 6000; unsettled = replay ? null : el;

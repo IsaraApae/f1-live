@@ -107,9 +107,11 @@ if (shell) { const cached = new Set([...shell[1].matchAll(/"([^"]+)"/g)].map(m =
   check(history.laps("4"), [{ number: 12, time: 95.6, sectors: [null, null, null] }], "the snapshot's open-lap sectors leaked into the last lap");
   history.record({ 4: { Sectors: { 0: { Value: "30.200" } } }, 81: { Sectors: { 0: { Value: "31.100" } } } }, 30000);
   history.record({ 4: { Sectors: { 1: { Value: "29.900" } } } }, 60000);
+  check(history.sectorLap("4"), { number: 13, time: null, sectors: [30.2, 29.9, null], inProgress: true }, "the Track view missed the in-progress splits");
   history.record({ 4: { NumberOfLaps: 13 }, 81: { NumberOfLaps: 12 } }, 95000);
   history.record({ 4: { LastLapTime: { Value: "1:35.100" }, Sectors: { 2: { Value: "35.000" } } } }, 97000);
   check(history.laps("4").at(-1), { number: 13, time: 95.1, sectors: [30.2, 29.9, 35] }, "a late finish-line time or sector went to the wrong lap");
+  check(history.sectorLap("4"), { number: 13, time: 95.1, sectors: [30.2, 29.9, 35] }, "the Track view lost the completed split before the next lap");
   check(history.laps("81"), [{ number: 12, time: null, sectors: [31.1, null, null] }], "the lapped car inherited another driver's lap");
   history.record({ 4: { NumberOfLaps: 12, LastLapTime: { Value: "0:15.901" } } }, 98000);
   history.record({ 4: { Sectors: { 0: { Value: "29.000" } } } }, 125000);

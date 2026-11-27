@@ -80,6 +80,12 @@ export function liveLapHistory() {
 
   return {
     setSession, snapshot, record,
-    laps(driver) { return [...(drivers.get(driver)?.laps.values() || [])]; }
+    laps(driver) { return [...(drivers.get(driver)?.laps.values() || [])]; },
+    sectorLap(driver) {
+      const state = drivers.get(driver);
+      if (!state) return null;
+      if (state.pending?.sectors.some(Boolean)) return { ...state.pending, inProgress: true };
+      return state.laps.get(state.completed) || null;
+    }
   };
 }
