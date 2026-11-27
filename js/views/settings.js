@@ -25,7 +25,7 @@ export default {
         <p class="note-line small" id="favMsg" hidden>Couldn't load the drivers. <button class="btn" id="favRetry" type="button">Try again</button><small id="favWhy" style="display:block;margin-top:8px;overflow-wrap:anywhere"></small></p></div></section>
       <section class="card"><h2 class="card-h">Alerts</h2><div class="card-b">
         <div class="toggles">
-          <label><span>Race control pop-ups<small>Safety car, red flag, penalties and investigations pop up while you watch (live and replays)</small></span>
+          <label><span>Race control pop-ups<small>Show alerts during live timing and replays. Race flow has an expandable race control feed.</small></span>
             <span class="switch"><input type="checkbox" id="alerts"></span></label>
           <label><span>Notifications in the background<small>While the Live tab is open in another tab or window, race control messages also come as system notifications</small></span>
             <span class="switch"><input type="checkbox" id="notify"></span></label></div></div></section>

@@ -824,11 +824,22 @@ function renderRaceControl() {
   const chips = RC_FILTERS.map(([g, label]) => `<button data-g="${g}" aria-pressed="${g === rcFilter}">${label} ${count(g) || ""}</button>`).join("");
   if ($("rcKinds")._html !== chips) { $("rcKinds").innerHTML = chips; $("rcKinds")._html = chips; }
   const msgs = all.filter(x => rcFilter === "all" || x.k[3] === rcFilter).slice(-80).reverse();
+  renderRaceControlRows($("rc"), msgs);
+  if ($("tgrid").dataset.show === "flow") renderFlowAlerts(all);
+}
+function renderRaceControlRows(el, msgs) {
   const html = msgs.length ? msgs.map(({ m, k: [cls, icon, label] }) =>
-    `<li><span class="rc-ico ${cls}">${RC_ICON[icon]}</span><div class="rc-body"><div class="rc-msg">${withTags(m.Message)}</div>
+    `<li><span class="rc-ico ${cls}" aria-hidden="true">${RC_ICON[icon]}</span><div class="rc-body"><div class="rc-msg">${withTags(m.Message)}</div>
       <div class="rc-meta"><span class="rc-kind">${label}</span><span class="when">${m.Lap ? "Lap " + esc(m.Lap) + " · " : ""}${timeOf(m.Utc)}</span></div></div></li>`).join("")
     : `<li class="empty">No messages yet</li>`;
-  if ($("rc")._html !== html) { $("rc").innerHTML = html; $("rc")._html = html; }
+  if (el._html !== html) { el.innerHTML = html; el._html = html; }
+}
+function renderFlowAlerts(all) {
+  const alerts = all.filter(({ m }) => alertable(m));
+  const count = String(alerts.length), latest = alerts.at(-1)?.m.Message || "";
+  if ($("flowAlertCount").textContent !== count) $("flowAlertCount").textContent = count;
+  if ($("flowAlertLatest").textContent !== latest) $("flowAlertLatest").textContent = latest;
+  if ($("flowAlerts").open) renderRaceControlRows($("flowAlertList"), alerts.slice(-80).reverse());
 }
 
 // ---------- pop-up alerts: new race control messages ----------
@@ -845,6 +856,7 @@ function notifyRaceControl() {
   const msgs = list((S.RaceControlMessages || {}).Messages);
   if (rcSeen == null || msgs.length < rcSeen) { rcSeen = msgs.length; return; }   // just opened, or a replay went back: nothing old pops up
   const fresh = msgs.slice(rcSeen); rcSeen = msgs.length;
+  if ($("tgrid").dataset.show === "flow") return;
   if (!fresh.length || !store.get("f1.alerts", true) || (mode === "replay" && fresh.length > 8)) return;   // a replay jumped ahead: skip
   for (const m of fresh.filter(alertable).slice(-3)) toast(m);
 }
@@ -852,7 +864,7 @@ function toast(m) {
   if (!APP) return;
   const [cls, icon, label] = rcKind(m);
   APP.toast(`<span class="rc-ico ${cls}">${RC_ICON[icon]}</span><div class="rc-body"><div class="rc-kind">${label}${m.Lap ? " · Lap " + esc(m.Lap) : ""}</div>
-    <div class="rc-msg">${withTags(m.Message)}</div></div>`);
+    <div class="rc-msg">${withTags(m.Message)}</div></div>`, { cls: "rc-toast" });
   // and as a system notification when the page is in the background (if allowed in Settings)
   if (mode === "live" && document.hidden && store.get("f1.notify", false) && "Notification" in window && Notification.permission === "granted")
     try { new Notification(label, { body: m.Message, icon: "icons/icon-192.png", tag: "rc" + rcSeen }); } catch (e) {}
@@ -1553,7 +1565,11 @@ function markup(replay) {
   <div class="seg wide tsubs" id="tsubs" role="group" aria-label="Panels">${groups.map(([k, l]) => `<button type="button" data-k="${k}" ${k === "flow" ? "hidden" : ""}>${l}</button>`).join("")}</div>
   <div class="tgrid" id="tgrid">
     ${replay ? panel("p-flow", "flow", `<span>Race flow <small id="flowLap"></small></span>
-      <button class="btn small" id="flowQuick" type="button" aria-pressed="false">Quick replay</button>`, raceFlowMarkup) : ""}
+      <button class="btn small" id="flowQuick" type="button" aria-pressed="false">Quick replay</button>`, `${raceFlowMarkup}
+        <details class="flow-alerts" id="flowAlerts">
+          <summary><span>Race control</span><span class="flow-alert-count" id="flowAlertCount">0</span><span class="flow-alert-latest" id="flowAlertLatest" aria-hidden="true"></span></summary>
+          <ol class="feed" id="flowAlertList" tabindex="0" aria-label="Race control updates"></ol>
+        </details>`) : ""}
     <div class="tcol">
       ${panel("p-tower", "timing", `<span>Timing <small id="part"></small> <small id="batN"></small> <small id="followHint">· tap a driver to follow</small></span><span class="hd-tools"><button class="btn small ghost lap-jump" id="lapJump" type="button">Lap times</button><button class="btn small ghost" id="colsBtn" type="button">Columns</button></span>`,
         `<div class="scroll"><table id="tower"></table></div>`)}
@@ -1631,8 +1647,11 @@ function setSub(k) {
     switcher.setAttribute("aria-pressed", String(k === "flow"));
     switcher.textContent = k === "flow" ? "Overview" : "Race flow";
   }
-  if (k === "flow") renderRaceFlow();
-  else {
+  if (k === "flow") {
+    for (const popup of document.querySelectorAll("#toasts .rc-toast")) popup.remove();
+    renderRaceFlow();
+    renderRaceControl();
+  } else {
     store.set("f1.sub", k);
     if (quickFlow) setQuickFlow(false);
   }
@@ -1731,6 +1750,9 @@ function wire(root) {
     store.set("f1.hide", [...hiddenCols]); applyColumns();
   });
   if (!$("rbar")) return;
+  on("flowAlerts", "toggle", e => {
+    if (e.currentTarget.isConnected && e.currentTarget.open) renderRaceControl();
+  });
   on("flowSwitch", "click", () => setSub($("tgrid").dataset.show === "flow" ? store.get("f1.sub", "timing") : "flow"));
   on("flowQuick", "click", () => {
     if (!flowModel) return;

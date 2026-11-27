@@ -106,6 +106,14 @@
 .flow-vsc { --flow-flag: #f59e0b; }
 .flow-red { --flow-flag: #e94768; }
 .race-flow-lines rect { fill: var(--flow-flag); opacity: .19; }
+.flow-alerts { border-top: 1px solid var(--line); }
+.flow-alerts summary { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; cursor: pointer; list-style: none; font-size: 12px; font-weight: 800; }
+.flow-alerts summary::-webkit-details-marker { display: none; }
+.flow-alerts summary::after { content: ""; flex: 0 0 7px; height: 7px; margin: 0 3px 4px 1px; border: solid var(--dim); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.flow-alerts[open] summary::after { transform: rotate(225deg); margin-bottom: -3px; }
+.flow-alert-count { padding: 2px 6px; border-radius: 8px; color: var(--text); background: var(--chip); font-size: 10px; font-variant-numeric: tabular-nums; }
+.flow-alert-latest { flex: 1; min-width: 0; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.flow-alerts ol.feed { max-height: min(240px, 32vh); border-top: 1px solid var(--line); }
 
 /* driver tag position */
 .posn { display: inline-block; min-width: 22px; text-align: right; margin-right: 9px; font-weight: 900; font-size: 14px; vertical-align: middle; }
