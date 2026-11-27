@@ -1855,13 +1855,8 @@ export function mountTiming(el, { replay = null, app = null, openFlow = false } 
   // a tablet turned on its side, or a window made wider: the map's panel is now beside the timing, so its real map starts
   const tabbed = matchMedia("(max-width: 1099px)"), unfold = () => { if (circuit && !geo) setupGeo(); };
   tabbed.addEventListener("change", unfold); offs.push(() => tabbed.removeEventListener("change", unfold));
-<<<<<<< HEAD
   const retheme = () => { champKey = ""; dirty = true; if (geo) geo.theme(isDark()); }; addEventListener("themechange", retheme); offs.push(() => removeEventListener("themechange", retheme));
-  if (replay) startReplay(+replay); else connect();
-=======
-  const retheme = () => { champKey = ""; dirty = true; if (geo) geo.theme(mapTheme()); }; addEventListener("themechange", retheme); offs.push(() => removeEventListener("themechange", retheme));
   if (replay) startReplay(+replay, openFlow); else connect();
->>>>>>> 2fff6ef (Add lap-by-lap race flow replay)
   return stop;
 }
 function stop() {

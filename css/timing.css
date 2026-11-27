@@ -166,7 +166,6 @@ small.u { color: var(--dim); font-size: 10px; }
 .lap-history thead { position: sticky; top: 0; z-index: 3; }
 .lap-history tbody .lap-selected :is(th, td) { background: var(--chip); color: var(--text); }
 .lap-note { margin: 0; padding: 9px 14px; color: var(--dim); font-size: 12px; }
-[data-theme="cyberpunk"] .lap-history td, [data-theme="cyberpunk"] .lap-difference td { font-family: var(--telemetry-font); }
 
 /* track map */
 .mapwrap { position: relative; background: var(--map); perspective: 1000px; overflow: hidden; }
@@ -252,8 +251,6 @@ small.u { color: var(--dim); font-size: 10px; }
 .bests:not(.driver-sectors) p:first-of-type > span:last-child { color: var(--purple); }
 .bests p.driver-sector-time { font-size: 18px; line-height: 1.2; }
 .bests p.driver-sector-best { color: var(--dim); font-size: 11px; }
-[data-theme="cyberpunk"] .driver-sector-time,
-[data-theme="cyberpunk"] .driver-sector-best b { font-family: var(--telemetry-font); }
 .when { color: var(--dim); font-size: 11px; white-space: nowrap; font-weight: 600; }
 
 /* championship */
