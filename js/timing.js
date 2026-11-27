@@ -1514,6 +1514,9 @@ const tvSyncMarkup = `<details class="tv-sync" id="tvSync">
   </div>
 </details>`;
 
+// TV sync can be turned off in Settings (f1.tvSync): then the Live tab has no TV sync row and runs with no delay
+const tvSyncOn = () => store.get("f1.tvSync", true);
+
 function renderTvSync() {
   const delay = tvSync.delay;
   const at = Date.now(), wait = tvSync.wait(at);
@@ -1555,7 +1558,7 @@ function markup(replay) {
       <div class="fact" id="chanceBox" hidden><small>Rain chance</small><b id="chance"></b></div>
       ${replay ? '<button class="btn small" id="flowSwitch" type="button" aria-pressed="false" hidden>Race flow</button>' : ""}
     </div>
-    ${replay ? "" : tvSyncMarkup}
+    ${replay || !tvSyncOn() ? "" : tvSyncMarkup}
   </section>
   <section class="card next" id="next" hidden>
     <div class="what"><small>NEXT SESSION</small><b id="nextName"></b><span id="nextWhen"></span></div>
@@ -1789,7 +1792,7 @@ function frame() {
   if (mode === "off") return;
   if (mode === "live") {
     tvSync.drain(Date.now(), deliverLive);
-    renderTvSync();
+    if ($("tvSync")) renderTvSync();
   }
   replayTick();
   renderNext();
@@ -1840,10 +1843,10 @@ export function mountTiming(el, { replay = null, app = null, openFlow = false } 
     step(at) { R.playing = false; setQuickFlow(false); seekTo(at); },
     highlight: setFollow
   }) : null;
-  tvSync = replay ? null : createTvSync(store.get("f1.tvDelay", 0));
+  tvSync = replay ? null : createTvSync(tvSyncOn() ? store.get("f1.tvDelay", 0) : 0);   // (turned off in Settings: no delay)
   latestLap = lapCrossedAt = null;
   lastFrame = lastLiveFrame = 0;
-  if (tvSync) $("tvDelay").value = tvSync.delay;
+  if (tvSync && $("tvDelay")) $("tvDelay").value = tvSync.delay;
   setSub(store.get("f1.sub", "timing"));
   timers.push(setInterval(frame, 250));
   rafId = requestAnimationFrame(animateCars);

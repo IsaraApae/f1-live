@@ -23,6 +23,10 @@ export default {
           <label><span>Driver</span><select class="pick" id="favD"><option value="">None</option></select></label>
           <label><span>Team</span><select class="pick" id="favT"><option value="">None</option></select></label></div>
         <p class="note-line small" id="favMsg" hidden>Couldn't load the drivers. <button class="btn" id="favRetry" type="button">Try again</button><small id="favWhy" style="display:block;margin-top:8px;overflow-wrap:anywhere"></small></p></div></section>
+      <section class="card"><h2 class="card-h">Live timing</h2><div class="card-b">
+        <div class="toggles">
+          <label><span>TV sync<small>Delay the Live tab's timing, map, flags and radio to match your TV broadcast. Off: the Live tab shows the feed as it comes, with no TV sync row.</small></span>
+            <span class="switch"><input type="checkbox" id="tvsync"></span></label></div></div></section>
       <section class="card"><h2 class="card-h">Alerts</h2><div class="card-b">
         <div class="toggles">
           <label><span>Race control pop-ups<small>Show alerts during live timing and replays. Race flow has an expandable race control feed.</small></span>
@@ -61,6 +65,8 @@ export default {
     $("favD").addEventListener("change", e => { store.set("f1.favDriver", e.target.value || null); app.toast(`<div>${e.target.value ? "Your driver is on the Home page." : "Driver removed from Home."}</div>`, { ms: 2500 }); });
     $("favT").addEventListener("change", e => { store.set("f1.favTeam", e.target.value || null); app.toast(`<div>${e.target.value ? "Your team is on the Home page." : "Team removed from Home."}</div>`, { ms: 2500 }); });
 
+    $("tvsync").checked = store.get("f1.tvSync", true);
+    $("tvsync").addEventListener("change", e => { store.set("f1.tvSync", e.target.checked); app.toast(`<div>${e.target.checked ? "TV sync is on the Live tab." : "TV sync is off: live timing as it comes."}</div>`, { ms: 2500 }); });
     $("alerts").checked = store.get("f1.alerts", true);
     $("alerts").addEventListener("change", e => store.set("f1.alerts", e.target.checked));
     const canNotify = "Notification" in window;
