@@ -22,6 +22,11 @@ In the same style as the [Alert Watch](https://github.com/IsaraApae/alert-watch)
   <img src="docs/road.jpg" width="395" alt="Track map, Road view with a mini-map, light and dark">
 </p>
 <p>
+  <img src="docs/live.jpg" width="395" alt="Live timing with TV sync set to a 20-second delay, light and dark">
+  <img src="docs/raceflow.jpg" width="395" alt="Race flow: everyone's place lap by lap in a replay, light and dark">
+</p>
+<p>
+  <img src="docs/laps.jpg" width="395" alt="Lap times: two drivers' laps and sectors compared, light and dark">
   <img src="docs/driver.jpg" width="395" alt="Track map, Driver view, light and dark">
 </p>
 
