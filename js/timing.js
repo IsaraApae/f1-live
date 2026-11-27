@@ -2,6 +2,7 @@
 // or any past session rebuilt from OpenF1 in the live feed's shapes. Only one is on screen at a time.
 import { esc, hex, store, sleep, photo as photoOf, teamLogo as logoOf, ink, tagVars, slug, TYRES, lapText, ICONS, countdownHtml, fmtWhen, SHORT } from "./util.js";
 import { liveTracker } from "./livepos.js";
+import { createTvSync, MAX_DELAY } from "./tv-sync.js";
 import { of1, jolpica, forecast, forecastFor } from "./api.js";
 import { currentSeason, season as seasonOf, allSessions } from "./season.js";
 import * as A from "./analysis.js";
@@ -17,7 +18,8 @@ const RS = "\u001e";
 let S = {};                            // what's on screen, one object per F1 topic (the live feed's shapes; a replay fills the same)
 let mode = "off";                      // live | replay | off (not on screen)
 const live = liveTracker();            // live map: where each car is between F1's timing marks (livepos.js)
-const now = () => mode === "replay" ? R.t : Date.now();
+let tvSync = null, latestLap = null, lapCrossedAt = null;
+const now = () => mode === "replay" ? R.t : tvSync ? tvSync.time(Date.now()) : Date.now();
 let dirty = true, APP = null;
 
 // ---------- helpers ----------
@@ -78,6 +80,23 @@ function trackLive(ts) {
   }
 }
 let ws, pingTimer, retryTimer, retry = 0;
+function deliverLive(message, receivedAt) {
+  if (message.snapshot) {
+    const previousSession = S.SessionInfo?.Key;
+    if (previousSession != null && previousSession !== message.snapshot.SessionInfo?.Key) {
+      live.clear();
+      resetCars();
+      lapLog.length = 0;
+      for (const log of [pitLog, pitSince]) for (const key in log) delete log[key];
+    }
+    S = {}; radioSeen = null; rcSeen = null;
+    for (const [topic, data] of Object.entries(message.snapshot)) apply(topic, data, receivedAt);
+    gotState = true;
+  } else {
+    apply(message.topic, message.data, message.at);
+  }
+}
+
 function connect() {
   if (mode !== "live") return;
   setLive("connecting");
@@ -98,13 +117,20 @@ function connect() {
         clearInterval(pingTimer); pingTimer = setInterval(() => sock.readyState === 1 && sock.send(JSON.stringify({ type: 6 }) + RS), 15000);
         continue;
       }
+      const receivedAt = Date.now();
       if (m.type === 3 && m.result) {  // the full state, then changes as they happen
-        S = {}; radioSeen = null; rcSeen = null;
-        for (const [topic, data] of Object.entries(m.result)) apply(topic, data, now());
-        gotState = true; frame();   // (drawn now, so the panels can come in: settle)
+        const lap = +m.result.LapCount?.CurrentLap || null;
+        if (lap !== latestLap) lapCrossedAt = null;
+        latestLap = lap;
+        tvSync.enqueue(receivedAt, { snapshot: m.result });
+        frame();
       } else if (m.type === 1 && Array.isArray(m.arguments)) {
         const [topic, data, ts] = m.arguments;
-        if (typeof topic === "string") apply(topic, data, utc(ts) || now());
+        if (topic === "LapCount" && +data?.CurrentLap && +data.CurrentLap !== latestLap) {
+          latestLap = +data.CurrentLap;
+          lapCrossedAt = receivedAt;
+        }
+        if (typeof topic === "string") tvSync.enqueue(receivedAt, { topic, data, at: utc(ts) || receivedAt });
       } else if (m.type === 7) sock.close();
     }
   };
@@ -117,8 +143,8 @@ function connect() {
 }
 function setLive(state) {
   const el = $("live"); if (!el) return;
-  el.className = "badge" + (state === "live" ? " red live" : state === "replay" ? " blue" : "");
-  el.textContent = { live: "LIVE", replay: "REPLAY", connecting: "CONNECTING", offline: "OFFLINE", ended: "ENDED", waiting: "NOT STARTED", loading: "LOADING" }[state] || state;
+  el.className = "badge" + (state === "live" ? " red live" : state === "replay" ? " blue" : state === "delayed" ? " amber" : "");
+  el.textContent = { live: "LIVE", delayed: "DELAYED", replay: "REPLAY", connecting: "CONNECTING", offline: "OFFLINE", ended: "ENDED", waiting: "NOT STARTED", loading: "LOADING" }[state] || state;
 }
 
 // ---------- replay: any past session, rebuilt from OpenF1 ----------
@@ -485,7 +511,8 @@ function renderHeader() {
   else if (mode === "live") { $("event").textContent = "Waiting for live timing…"; $("sub").textContent = ""; }
   if (mode === "replay" && R.data) $("sub").textContent = "Replay · " + new Date(R.start).toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" });
   const status = (S.SessionStatus || {}).Status;
-  if (mode === "live" && ws && ws.readyState === 1) setLive(status === "Started" ? "live" : ["Finished", "Finalised", "Ends"].includes(status) ? "ended" : status === "Inactive" ? "waiting" : "live");
+  if (mode === "live" && ws?.readyState === 1 && S.SessionInfo)
+    setLive(["Finished", "Finalised", "Ends"].includes(status) ? "ended" : status === "Inactive" ? "waiting" : tvSync.delay ? "delayed" : "live");
   const lap = S.LapCount;
   show("lapBox", lap && lap.TotalLaps); if (lap && lap.TotalLaps) $("lap").textContent = `${lap.CurrentLap}/${lap.TotalLaps}`;
   const ts = S.TrackStatus || {}, chip = $("track");
@@ -1302,7 +1329,7 @@ export function lapFraction(num, l, t = now()) {
 }
 const cars = {};   // one drawn tag per car, moved smoothly every frame
 function resetCars() { for (const k in cars) delete cars[k]; const g = $("cars"); if (g) g.innerHTML = ""; }
-let lastFrame = 0, rafId = 0;
+let lastFrame = 0, lastLiveFrame = 0, rafId = 0;
 const SVGNS = "http://www.w3.org/2000/svg";
 const pitSince = {};   // live: when each car was first seen in the pit lane
 function pitProgress(num, at) {   // how far through the pit lane a pitting car is (0..1)
@@ -1313,9 +1340,12 @@ function pitProgress(num, at) {   // how far through the pit lane a pitting car 
 function animateCars(ts) {   // each car: a dot on the racing line, with its tag just above it
   if (mode === "off") return;
   rafId = requestAnimationFrame(animateCars);
-  const g = $("cars"), dt = Math.min(0.1, lastFrame ? (ts - lastFrame) / 1000 : 0); lastFrame = ts; frameMs = dt * 1000;
-  if (!g || !circuit || !trackLen.length) return;
+  const g = $("cars");
   const at = mode === "replay" && R.playing && R.last ? Math.min(R.end, R.t + (performance.now() - R.last) * R.speed) : now();   // replay: the moment this frame shows
+  frameMs = Math.min(100, mode === "live" ? (lastLiveFrame ? at - lastLiveFrame : 0) : (lastFrame ? ts - lastFrame : 0));
+  lastFrame = ts; lastLiveFrame = at;
+  const dt = frameMs / 1000;
+  if (!g || !circuit || !trackLen.length) return;
   const lines = (S.TimingData || {}).Lines || {};
   const over = mode === "live" && ["Finished", "Finalised", "Ends", "Inactive"].includes((S.SessionStatus || {}).Status);
   const seen = new Set(), red = (S.TrackStatus || {}).Status === "5";
@@ -1395,6 +1425,45 @@ function animateCars(ts) {   // each car: a dot on the racing line, with its tag
 }
 
 // ---------- the screen ----------
+
+const tvSyncMarkup = `<details class="tv-sync" id="tvSync">
+  <summary><b>TV sync</b><span id="tvSyncValue">Off</span></summary>
+  <div class="tv-sync-body">
+    <div class="tv-sync-delay">
+      <button class="btn ghost" id="tvMinus" type="button" aria-label="Decrease delay by one second">−1s</button>
+      <input id="tvDelay" aria-label="TV delay in seconds" type="range" min="0" max="${MAX_DELAY}" value="0">
+      <button class="btn ghost" id="tvPlus" type="button" aria-label="Increase delay by one second">+1s</button>
+    </div>
+    <div class="tv-sync-actions">
+      <button class="btn small ghost" id="tvPreset" type="button">Set 20s</button>
+      <button class="btn small ghost" id="tvLap" type="button" hidden>Match TV lap</button>
+      <button class="btn small ghost" id="tvLive" type="button">Go live</button>
+    </div>
+    <p id="tvLapHint" hidden>Tap Match TV lap when the leader crosses the line on your broadcast.</p>
+  </div>
+</details>`;
+
+function renderTvSync() {
+  const delay = tvSync.delay;
+  const at = Date.now(), wait = tvSync.wait(at);
+  const text = delay ? `${delay}s delay${wait ? ` · ${S.SessionInfo ? "Holding" : "Buffering"} ${wait}s` : ""}` : "Off";
+  if ($("tvSyncValue").textContent !== text) $("tvSyncValue").textContent = text;
+  $("tvMinus").disabled = $("tvLive").disabled = delay === 0;
+  $("tvPlus").disabled = delay === MAX_DELAY;
+  const canMatchLap = !!S.LapCount?.TotalLaps && (S.SessionStatus || {}).Status === "Started";
+  show("tvLap", canMatchLap); show("tvLapHint", canMatchLap);
+  $("tvLap").disabled = lapCrossedAt === null || at - lapCrossedAt > MAX_DELAY * 1000;
+}
+
+function setTvDelay(seconds) {
+  const before = tvSync.delay;
+  tvSync.setDelay(seconds, Date.now());
+  $("tvDelay").value = tvSync.delay;
+  if (tvSync.delay > before) audio.pause();
+  store.set("f1.tvDelay", tvSync.delay);
+  dirty = true;
+  frame();
+}
 // on a phone the panels are grouped under sub-tabs; on a wide screen they all show in two columns
 const GROUPS = [["timing", "Timing"], ["track", "Track"], ["rc", "Race control"], ["radio", "Radio"], ["more", "More"]];
 const TAB_REPLAY = ["analysis", "Analysis"];
@@ -1414,6 +1483,7 @@ function markup(replay) {
       <div class="fact" id="rainBox" hidden><small>Rain</small><b id="rain"></b></div>
       <div class="fact" id="chanceBox" hidden><small>Rain chance</small><b id="chance"></b></div>
     </div>
+    ${replay ? "" : tvSyncMarkup}
   </section>
   <section class="card next" id="next" hidden>
     <div class="what"><small>NEXT SESSION</small><b id="nextName"></b><span id="nextWhen"></span></div>
@@ -1499,6 +1569,15 @@ function setSub(k) {   // phone: which group of panels shows
 }
 function wire(root) {
   const on = (id, ev, fn) => { const el = $(id); if (el) el.addEventListener(ev, fn); };
+  on("tvDelay", "input", e => setTvDelay(e.target.value));
+  on("tvMinus", "click", () => setTvDelay(tvSync.delay - 1));
+  on("tvPlus", "click", () => setTvDelay(tvSync.delay + 1));
+  on("tvPreset", "click", () => setTvDelay(20));
+  on("tvLive", "click", () => setTvDelay(0));
+  on("tvLap", "click", () => {
+    const elapsed = Date.now() - lapCrossedAt;
+    if (lapCrossedAt !== null && elapsed <= MAX_DELAY * 1000) setTvDelay(elapsed / 1000);
+  });
   on("rcKinds", "click", e => { const b = e.target.closest("button"); if (b) { rcFilter = b.dataset.g; $("rcKinds")._html = ""; $("rc")._html = ""; renderRaceControl(); } });
   on("posChart", "click", e => { const g = e.target.closest(".who"); setFollow(g ? g.dataset.n : null); });
   on("fClose", "click", () => setFollow(null));
@@ -1565,6 +1644,10 @@ export function seekTo(t) { if (!R.data) return; R.t = Math.max(R.start, Math.mi
 let tick = 0;
 function frame() {
   if (mode === "off") return;
+  if (mode === "live") {
+    tvSync.drain(Date.now(), deliverLive);
+    renderTvSync();
+  }
   replayTick();
   renderNext();
   if (dirty) {
@@ -1608,6 +1691,10 @@ export function mountTiming(el, { replay = null, app = null } = {}) {
   applyColumns();
   pressView();
   mode = replay ? "replay" : "live";
+  tvSync = replay ? null : createTvSync(store.get("f1.tvDelay", 0));
+  latestLap = lapCrossedAt = null;
+  lastFrame = lastLiveFrame = 0;
+  if (tvSync) $("tvDelay").value = tvSync.delay;
   setSub(store.get("f1.sub", "timing"));
   timers.push(setInterval(frame, 250));
   rafId = requestAnimationFrame(animateCars);
@@ -1626,6 +1713,7 @@ export function mountTiming(el, { replay = null, app = null } = {}) {
 function stop() {
   if (mode === "off" && !timers.length) return;
   mode = "off"; replayToken++;
+  tvSync = null;
   while (timers.length) clearInterval(timers.pop());
   while (offs.length) offs.pop()();
   cancelAnimationFrame(rafId);

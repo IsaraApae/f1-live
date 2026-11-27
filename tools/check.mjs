@@ -70,6 +70,30 @@ if (shell) { const cached = new Set([...shell[1].matchAll(/"([^"]+)"/g)].map(m =
   if (worst > 0.001 || back) problems.push(`js/livepos.js: ${(worst * 100).toFixed(2)}% of a lap off, ${back} frames backwards (want under 0.1%, none)`);
 }
 
+// TV sync should hold the entire feed, including the first snapshot, and catch up in order.
+{
+  const { createTvSync, MAX_DELAY } = await import(new URL("../js/tv-sync.js", import.meta.url));
+  const sync = createTvSync(20), seen = [];
+  const drain = at => sync.drain(at, message => seen.push(message.name));
+  sync.enqueue(1000, { snapshot: {}, name: "session" });
+  sync.enqueue(3000, { name: "yellow flag" });
+  drain(20999);
+  if (seen.length || sync.wait(20999) !== 1) problems.push("TV sync: a saved delay must hold the first snapshot");
+  drain(21000);
+  if (seen.join() !== "session") problems.push("TV sync: the first snapshot didn't appear at its delay");
+  sync.setDelay(25, 21000);
+  drain(25000);
+  if (sync.time(25000) !== 1000 || sync.wait(25000) !== 1 || seen.length !== 1) problems.push("TV sync: increasing the delay must hold the displayed time");
+  drain(28000);
+  if (seen.join() !== "session,yellow flag") problems.push("TV sync: the held update didn't appear at the new delay");
+  sync.enqueue(28000, { name: "clear" });
+  sync.setDelay(0, 28000);
+  drain(28000);
+  if (seen.join() !== "session,yellow flag,clear") problems.push("TV sync: Go live didn't catch up");
+  sync.setDelay(MAX_DELAY + 1, 28000);
+  if (sync.delay !== MAX_DELAY) problems.push("TV sync: the maximum delay was not enforced");
+}
+
 // 5b. a yellow race control never cleared by name (Brazil 2026, sector 15) ends at the chequered flag
 // (timing.js needs a browser to load: its flagState is one self-contained function, so it's tried on its own)
 {

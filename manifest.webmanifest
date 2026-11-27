@@ -1,9 +1,9 @@
 {
   "name": "F1 Live",
   "short_name": "F1 Live",
-  "description": "Free Formula 1 companion: live timing, the calendar in your time zone, standings, replays, lap battles and the latest headlines.",
+  "description": "Follow Formula 1 drivers with live timing, track maps and adjustable TV sync.",
   "id": "./",
-  "start_url": "./",
+  "start_url": "./?live",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
