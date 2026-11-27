@@ -10,7 +10,7 @@ const SHELL = [
   "css/app.css", "css/timing.css", "css/calendar.css", "css/standings.css", "css/battle.css", "css/news.css",
   "js/main.js", "js/util.js", "js/api.js", "js/final.js", "js/season.js", "js/news.js", "js/timing.js", "js/analysis.js", "js/stats.js", "js/calendar-ui.js", "js/geomap.js", "js/car3d.js", "js/cutout.js", "js/livepos.js", "js/tv-sync.js", "js/lap-timing.js", "js/lap-comparison.js", "js/battle-film.js",
   "js/views/home.js", "js/views/live.js", "js/views/calendar.js", "js/views/weekend.js", "js/views/standings.js", "js/views/driver.js",
-  "js/views/team.js", "js/views/replay.js", "js/views/battle.js", "js/views/news.js", "js/views/settings.js", "js/views/result.js"
+  "js/views/team.js", "js/views/replay.js", "js/views/battle.js", "js/views/news.js", "js/views/settings.js", "js/views/result.js", "js/race-flow.js"
 ];
 const STATIC = /\.(?:js|css|svg|png|webmanifest|woff2?)$/;
 

@@ -45,6 +45,9 @@
 .timing.settling .tsubs, .timing.settling .tgrid { visibility: hidden; }
 .tgrid { display: grid; grid-template-columns: minmax(0, 2.1fr) minmax(360px, 1fr); gap: 12px; align-items: start; }
 .tcol { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.tgrid:not([data-show="flow"]) > #p-flow, .tgrid[data-show="flow"] > .tcol { display: none; }
+#p-flow { grid-column: 1 / -1; width: 100%; max-width: 880px; justify-self: center; }
+#flowSwitch { margin-left: auto; }
 .panel .card-h { padding: 10px 14px; }
 .hd-tools { display: inline-flex; align-items: center; gap: 10px; }
 #p-map .hd-tools { flex-wrap: wrap; justify-content: flex-end; row-gap: 6px; }
@@ -53,6 +56,7 @@
   .tgrid { grid-template-columns: minmax(0, 1fr); }
   .tcol { display: contents; }
   .seg.tsubs { display: flex; position: sticky; top: 62px; z-index: 20; box-shadow: 0 6px 14px -8px var(--shadow); }
+  #flowSwitch { display: none; }
   .tgrid[data-show="timing"] .panel:not([data-g~="timing"]), .tgrid[data-show="track"] .panel:not([data-g~="track"]),
   .tgrid[data-show="laps"] .panel:not([data-g~="laps"]),
   .tgrid[data-show="rc"] .panel:not([data-g~="rc"]), .tgrid[data-show="radio"] .panel:not([data-g~="radio"]),
@@ -62,6 +66,46 @@
   #map { max-height: none !important; }
 }
 @media (max-width: 899px) { .seg.tsubs { top: calc(58px + env(safe-area-inset-top)); } }
+
+.race-flow-tools { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 12px; }
+.race-flow-tools .pick { max-width: min(100%, 220px); min-width: 0; min-height: 44px; }
+.race-flow-steps { display: flex; gap: 2px; }
+.race-flow-steps button { min-width: 44px; min-height: 44px; padding: 0; justify-content: center; font-size: 22px; }
+.race-flow-tools button:disabled, #flowQuick:disabled { opacity: .45; cursor: default; }
+#flowLap { white-space: nowrap; margin-inline-start: 5px; color: var(--dim); }
+#flowQuick { min-height: 40px; white-space: nowrap; }
+#flowQuick[aria-pressed="true"] { color: var(--blue); border-color: var(--blue); }
+.race-flow-chart {
+  display: grid; grid-template-columns: 26px minmax(0, 1fr) 61px; grid-template-rows: auto 27px;
+  padding: 0 10px 2px; font-variant-numeric: tabular-nums;
+}
+.race-flow-axis, .race-flow-labels { display: grid; grid-auto-rows: var(--flow-row); }
+.race-flow-axis span { display: grid; place-items: center start; color: var(--dim); font-size: 11px; padding-left: 2px; }
+.race-flow-lines { display: block; width: 100%; height: 100%; min-height: 0; background: var(--panel2); }
+.flow-grid path { fill: none; stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.flow-trace { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.flow-trace.dimmed { opacity: .17; }
+.race-flow-labels button {
+  position: relative; padding: 0 0 0 8px; border: 0; border-radius: 0 4px 4px 0; background: transparent;
+  color: var(--text); display: flex; align-items: center; gap: 3px; font-size: 12px; cursor: pointer;
+}
+.race-flow-labels button::before {
+  content: ""; position: absolute; left: -4px; width: 8px; height: 8px; background: var(--driver-colour);
+  border: 1px solid var(--panel); border-radius: 50%; box-sizing: border-box;
+}
+.race-flow-labels button[aria-pressed="true"] { background: var(--chip); }
+.race-flow-labels .dimmed { opacity: .58; }
+.race-flow-labels .tyre { width: 16px; height: 16px; border-width: 1.5px; font-size: 9px; }
+.race-flow-laps { grid-column: 2; position: relative; border-top: 1px solid var(--line); }
+.race-flow-laps span { position: absolute; top: 6px; transform: translateX(-50%); color: var(--dim); font-size: 11px; font-weight: 800; }
+.race-flow-laps span:last-child { color: var(--text); }
+.race-flow-key { display: flex; flex-wrap: wrap; gap: 5px 12px; padding: 2px 12px 10px; color: var(--dim); font-size: 11px; }
+.race-flow-key span { display: inline-flex; gap: 5px; align-items: center; }
+.race-flow-key i { width: 10px; height: 10px; border-radius: 2px; background: var(--flow-flag); }
+.flow-sc { --flow-flag: #facc15; }
+.flow-vsc { --flow-flag: #f59e0b; }
+.flow-red { --flow-flag: #e94768; }
+.race-flow-lines rect { fill: var(--flow-flag); opacity: .19; }
 
 /* driver tag position */
 .posn { display: inline-block; min-width: 22px; text-align: right; margin-right: 9px; font-weight: 900; font-size: 14px; vertical-align: middle; }

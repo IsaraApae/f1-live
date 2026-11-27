@@ -15,7 +15,7 @@ const ROUTES = [
   [/^\/driver\/([\w-]+)$/, "driver"],
   [/^\/team\/([\w-]+)$/, "team"],
   [/^\/replay$/, "replay"],
-  [/^\/replay\/(\d+)$/, "replay"],
+  [/^\/replay\/(\d+)(?:\/(flow))?$/, "replay"],
   [/^\/result\/(\d+)$/, "result"],
   [/^\/battle(?:\/(\d+)(?:\/(\d+)\/(\d+))?)?$/, "battle"],
   [/^\/news$/, "news"],

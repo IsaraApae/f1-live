@@ -8,11 +8,11 @@ let pickYear = new Date().getFullYear();
 export default {
   title: "Replay",
   tab: "replay",
-  async mount(el, [key], app) {
+  async mount(el, [key, view], app) {
     if (key) {
       app.setBack("back");
       app.setTools(`<a class="btn small" href="#/battle/${esc(key)}" title="Compare two drivers' laps">${ICONS.battle}<span class="hide-phone">Lap battle</span></a>`);
-      return mountTiming(el, { replay: key, app });
+      return mountTiming(el, { replay: key, app, openFlow: view === "flow" });
     }
     const thisYear = new Date().getFullYear();
     el.innerHTML = `
